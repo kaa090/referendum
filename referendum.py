@@ -9,7 +9,7 @@ from aiogram.utils.markdown import escape_md
 from contextlib import suppress
 from config import TOKEN
 
-class MyBot:
+class MyBot111:
 	def __init__(self):
 		self.referendums = {}
 
@@ -110,4 +110,4 @@ class MyBot:
 		return msg
 
 if __name__ == "__main__":
-	kaa = MyBot()
+	kaa = MyBot111()
