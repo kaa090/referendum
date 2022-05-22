@@ -94,7 +94,8 @@ def print_tabs():
 def exec_sql(sql, vals):
 	con = db_connect()	
 	cur = con.cursor()
-
+	# logging.info(f"vals={vals}")
+	# logging.info(f"sql={sql}")
 	try:
 		rows = cur.executemany(sql, vals).fetchall()		
 		con.commit()
@@ -113,7 +114,6 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 				VALUES(?, ?, ?, ?, ?, ?, ?)'''
 	exec_sql(sql, row)
 
-	
 	args = args[1:]
 	rows = []
 	for bttn in range(1, len(args)):
@@ -137,34 +137,11 @@ def get_referendum_db(chat_id, msg_id):
 						{TAB_REFERENDUMS}.msg_id = {msg_id}'''
 	
 	row = cur.execute(sql).fetchone()
+
 	referendum_params['title'] = row['title']
 	referendum_params['max_num'] = row['max_num']
-	
+
 	return referendum_params
-
-def set_vote_db(chat_id, msg_id, user_id, user_name, button):
-	con = db_connect()
-	con.row_factory = sqlite3.Row
-	cur = con.cursor()
-
-	sql = f'''SELECT MAX(datum), btn_status FROM {TAB_LOG}
-				WHERE {TAB_LOG}.chat_id = {chat_id} and
-						{TAB_LOG}.msg_id = {msg_id} and
-						{TAB_LOG}.button = {button} and
-						{TAB_LOG}.user_id = {user_id}'''
-	
-	btn_status = cur.execute(sql).fetchone()['btn_status']
-	if(btn_status):
-		btn_status = 0
-	else:
-		btn_status = 1
-
-	row = [(chat_id, msg_id, button, user_id, user_name, datetime.datetime.now(), btn_status)]
-
-	sql = f'''INSERT INTO {TAB_LOG}
-				(chat_id, msg_id, button, user_id, user_name, datum, btn_status) 
-				VALUES(?, ?, ?, ?, ?, ?, ?)'''
-	exec_sql(sql, row)
 
 def get_buttons_db(chat_id, msg_id):
 	buttons = {}
@@ -186,12 +163,40 @@ def get_buttons_db(chat_id, msg_id):
 	
 	return buttons
 
+def set_vote_db(chat_id, msg_id, user_id, user_name, button):
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+	button_old = 0
+	datum = datetime.datetime.now()
+	
+	referendum = get_votes_db(chat_id, msg_id)
+	
+	for btn in referendum:
+		for usr in referendum[btn]:
+			if(usr['user_id'] == user_id):
+				sql = f'''INSERT INTO {TAB_LOG}
+							(chat_id, msg_id, button, user_id, user_name, datum, btn_status) 
+							VALUES(?, ?, ?, ?, ?, ?, ?)'''
+				row = [(chat_id, msg_id, btn, user_id, user_name, datum, 0)]
+				exec_sql(sql, row)
+
+				button_old = btn
+
+	if(button_old != button):
+		sql = f'''INSERT INTO {TAB_LOG}
+					(chat_id, msg_id, button, user_id, user_name, datum, btn_status) 
+					VALUES(?, ?, ?, ?, ?, ?, ?)'''
+		row = [(chat_id, msg_id, button, user_id, user_name, datum, 1)]
+		exec_sql(sql, row)
+
+
 def get_votes_db(chat_id, msg_id):
 	con = db_connect()
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT {TAB_BUTTONS}.button, user_name, MAX(datum), btn_status
+	sql = f'''SELECT {TAB_BUTTONS}.button, user_id, user_name, MAX(datum), btn_status
 				FROM {TAB_BUTTONS} LEFT OUTER JOIN {TAB_LOG}
 				ON {TAB_BUTTONS}.chat_id = {TAB_LOG}.chat_id  and
 					{TAB_BUTTONS}.msg_id = {TAB_LOG}.msg_id  and
@@ -240,20 +245,20 @@ class MyBot:
 
 		logging.info(f"chatID={message.chat.id}, msgID={message.message_id}, vote created by {message.from_user.first_name}")
 
-		msg = self.update_message(message.chat.id, message.message_id, 0, '')
+		msg = await self.update_message(message.chat, message.message_id, 0)
 		keyboard = self.get_keyboard(message.chat.id, message.message_id)
 		
 		await message.answer(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		set_vote_db(chat_id=cbq.message.chat.id,
-					msg_id=cbq.message.message_id,
+					msg_id=cbq.message.message_id - 1,
 					user_id=cbq.from_user.id,
 					user_name=cbq.from_user.first_name,
 					button=int(callback_data['button']))
-		logging.info(f"chatID={cbq.message.chat.id}, msgID={cbq.message.message_id}, user {cbq.message.from_user.first_name} voted for {int(callback_data['button'])}")
-		msg = self.update_message(message.chat.id, message.message_id, int(callback_data['button']), cbq.from_user)
-		keyboard = self.get_keyboard(message.chat.id, message.message_id)
+		logging.info(f"chatID={cbq.message.chat.id}, msgID={cbq.message.message_id - 1}, user {cbq.message.from_user.first_name} voted for {int(callback_data['button'])}")
+		msg = await self.update_message(cbq.message.chat, cbq.message.message_id - 1, int(callback_data['button']))
+		keyboard = self.get_keyboard(cbq.message.chat.id, cbq.message.message_id - 1)
 		
 		with suppress(MessageNotModified):
 			await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
@@ -275,12 +280,13 @@ class MyBot:
 
 		return keyboard
 	
-	def update_message(self, chat_id, msg_id, user):
+	async def update_message(self, chat, msg_id, user):
 		flag = True
 		votes = 0
 		votes_total = 0
 		votes_percent = 0
 		votes_percent_by_chat = 0
+		chat_id = chat.id
 
 		referendum_params = get_referendum_db(chat_id, msg_id)
 		buttons_db = get_buttons_db(chat_id, msg_id)
@@ -326,7 +332,7 @@ class MyBot:
 			else:
 				msg += '\n'			
 		
-		chat_members = await message.chat.get_member_count()
+		chat_members = await chat.get_member_count()
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
 		msg += f"👥 {votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\\."
