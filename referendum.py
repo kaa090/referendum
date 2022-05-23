@@ -10,10 +10,6 @@ from aiogram.utils.markdown import escape_md
 from contextlib import suppress
 from config import TOKEN, FILE_DB, FILE_LOG, LEVEL
 
-TAB_REFERENDUMS = 'referendums'
-TAB_BUTTONS = 'buttons'
-TAB_LOG = 'log'
-
 def db_connect():
 	try:
 		con = sqlite3.connect(FILE_DB)
@@ -182,7 +178,7 @@ def get_votes_db(chat_id, msg_id):
 	
 	return referendum
 	
-def get_username(user: types.Message.from_user):
+def get_username(user):
 	if(user.last_name):
 		return f"{user.first_name} {user.last_name}"
 	elif(user.username):
