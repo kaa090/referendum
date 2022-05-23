@@ -8,10 +8,8 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.utils.markdown import escape_md
 from contextlib import suppress
-from config import TOKEN
+from config import TOKEN, FILE_DB, FILE_LOG, LEVEL
 
-FILE_LOG = "referendums.log"
-FILE_DB = 'mydatabase.db'
 TAB_REFERENDUMS = 'referendums'
 TAB_BUTTONS = 'buttons'
 TAB_LOG = 'log'
@@ -22,15 +20,6 @@ def db_connect():
 		return con
 	except sqlite3.Error as e:
 		logging.critical(e)
-
-def drop_tables():
-	con = db_connect()
-	cur = con.cursor()
-	cur.execute('DROP TABLE IF EXISTS referendums')
-	cur.execute('DROP TABLE IF EXISTS buttons')
-	cur.execute('DROP TABLE IF EXISTS log')
-	con.commit()
-	con.close()
 
 def create_tables():	
 	con = db_connect()
@@ -65,37 +54,10 @@ def create_tables():
 	con.commit()
 	con.close()
 
-def select_all(tab):
-	con = db_connect()
-	cur = con.cursor()
-	
-	rows = []
-	for row in cur.execute(f'SELECT * FROM {tab}'):
-		rows.append(row)
-	con.close()
-	return rows
-
-def print_tabs():
-	print(TAB_REFERENDUMS)
-	rows = select_all(TAB_REFERENDUMS)
-	for row in rows:
-		print(row)
-	
-	print(TAB_BUTTONS)
-	rows = select_all(TAB_BUTTONS)
-	for row in rows:
-		print(row)
-
-	print(TAB_LOG)
-	rows = select_all(TAB_LOG)
-	for row in rows:
-		print(row)
-
 def exec_sql(sql, vals):
 	con = db_connect()	
 	cur = con.cursor()
-	# logging.info(f"vals={vals}")
-	# logging.info(f"sql={sql}")
+
 	try:
 		rows = cur.executemany(sql, vals).fetchall()		
 		con.commit()
@@ -109,9 +71,10 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 	args = args.split("|")
 	row = [(chat_id, msg_id, args[1], args[0], user_id, user_name, datetime.datetime.now())]
 
-	sql = f'''INSERT INTO {TAB_REFERENDUMS}
+	sql = f'''INSERT INTO referendums
 				(chat_id, msg_id, title, max_num, user_id, user_name, datum) 
 				VALUES(?, ?, ?, ?, ?, ?, ?)'''
+	
 	exec_sql(sql, row)
 
 	args = args[1:]
@@ -119,7 +82,7 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 	for bttn in range(1, len(args)):
 		rows.append((chat_id, msg_id, bttn, args[bttn]))
 
-	sql = f'''INSERT INTO {TAB_BUTTONS}
+	sql = f'''INSERT INTO buttons
 				(chat_id, msg_id, button, btn_text)
 				VALUES(?, ?, ?, ?)'''
 
@@ -132,9 +95,9 @@ def get_referendum_db(chat_id, msg_id):
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT * FROM {TAB_REFERENDUMS}
-				WHERE {TAB_REFERENDUMS}.chat_id = {chat_id} and
-						{TAB_REFERENDUMS}.msg_id = {msg_id}'''
+	sql = f'''SELECT * FROM referendums
+				WHERE referendums.chat_id = {chat_id} and
+						referendums.msg_id = {msg_id}'''
 	
 	row = cur.execute(sql).fetchone()
 
@@ -151,7 +114,7 @@ def get_buttons_db(chat_id, msg_id):
 	cur = con.cursor()
 
 	sql = f'''SELECT button, btn_text
-				FROM {TAB_BUTTONS}
+				FROM buttons
 				WHERE chat_id = {chat_id} and
 						msg_id = {msg_id}'''
 		
@@ -175,7 +138,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button):
 	for btn in referendum:
 		for usr in referendum[btn]:
 			if(usr['user_id'] == user_id):
-				sql = f'''INSERT INTO {TAB_LOG}
+				sql = f'''INSERT INTO log
 							(chat_id, msg_id, button, user_id, user_name, datum, btn_status) 
 							VALUES(?, ?, ?, ?, ?, ?, ?)'''
 				row = [(chat_id, msg_id, btn, user_id, user_name, datum, 0)]
@@ -184,7 +147,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button):
 				button_old = btn
 
 	if(button_old != button):
-		sql = f'''INSERT INTO {TAB_LOG}
+		sql = f'''INSERT INTO log
 					(chat_id, msg_id, button, user_id, user_name, datum, btn_status) 
 					VALUES(?, ?, ?, ?, ?, ?, ?)'''
 		row = [(chat_id, msg_id, button, user_id, user_name, datum, 1)]
@@ -196,15 +159,15 @@ def get_votes_db(chat_id, msg_id):
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT {TAB_BUTTONS}.button, user_id, user_name, MAX(datum), btn_status
-				FROM {TAB_BUTTONS} LEFT OUTER JOIN {TAB_LOG}
-				ON {TAB_BUTTONS}.chat_id = {TAB_LOG}.chat_id  and
-					{TAB_BUTTONS}.msg_id = {TAB_LOG}.msg_id  and
-					{TAB_BUTTONS}.button = {TAB_LOG}.button
-				WHERE {TAB_BUTTONS}.chat_id = {chat_id} and
-						{TAB_BUTTONS}.msg_id = {msg_id}
-				GROUP BY {TAB_BUTTONS}.button, user_name
-				ORDER BY {TAB_BUTTONS}.button, datum'''
+	sql = f'''SELECT buttons.button, user_id, user_name, MAX(datum), btn_status
+				FROM buttons LEFT OUTER JOIN log
+				ON buttons.chat_id = log.chat_id and
+					buttons.msg_id = log.msg_id and
+					buttons.button = log.button
+				WHERE buttons.chat_id = {chat_id} and
+						buttons.msg_id = {msg_id}
+				GROUP BY buttons.button, user_name
+				ORDER BY buttons.button, datum'''
 
 	referendum = {}
 		
@@ -218,14 +181,21 @@ def get_votes_db(chat_id, msg_id):
 			referendum[row['button']].append({'user_id': row['user_id'], 'user_name': row['user_name']})
 	
 	return referendum
+	
+def get_username(user: types.Message.from_user):
+	if(user.last_name):
+		return f"{user.first_name} {user.last_name}"
+	elif(user.username):
+		return user.username
+	else:
+		return user.first_name
 
 class MyBot:
 	def __init__(self):
-		logging.basicConfig(level = logging.INFO, 
+		logging.basicConfig(level = LEVEL, 
 							format = "[%(asctime)s] [%(levelname)-8s] [%(funcName)s]: %(message)s",
 							handlers = [logging.FileHandler(FILE_LOG), logging.StreamHandler()])
 
-		# drop_tables()
 		create_tables()
 
 		self.bot = Bot(token = TOKEN)
@@ -240,10 +210,10 @@ class MyBot:
 		create_referendum_db(chat_id=message.chat.id, 
 								msg_id=message.message_id, 
 								user_id=message.from_user.id, 
-								user_name=message.from_user.first_name, 
+								user_name=get_username(message.from_user), 
 								args=message.get_args())	
 
-		logging.info(f"chatID={message.chat.id}, msgID={message.message_id}, vote created by {message.from_user.first_name}")
+		logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={message.message_id}, vote created by {message.from_user.first_name}")
 
 		msg = await self.update_message(message.chat, message.message_id, 0)
 		keyboard = self.get_keyboard(message.chat.id, message.message_id)
@@ -254,9 +224,9 @@ class MyBot:
 		set_vote_db(chat_id=cbq.message.chat.id,
 					msg_id=cbq.message.message_id - 1,
 					user_id=cbq.from_user.id,
-					user_name=cbq.from_user.first_name,
+					user_name=get_username(cbq.from_user),
 					button=int(callback_data['button']))
-		logging.info(f"chatID={cbq.message.chat.id}, msgID={cbq.message.message_id - 1}, user {cbq.message.from_user.first_name} voted for {int(callback_data['button'])}")
+		logging.info(f"chatID={cbq.message.chat.id}({cbq.message.chat.title}), msgID={cbq.message.message_id - 1}, user {cbq.from_user.first_name} voted for {int(callback_data['button'])}")
 		msg = await self.update_message(cbq.message.chat, cbq.message.message_id - 1, int(callback_data['button']))
 		keyboard = self.get_keyboard(cbq.message.chat.id, cbq.message.message_id - 1)
 		
@@ -283,6 +253,9 @@ class MyBot:
 	async def update_message(self, chat, msg_id, user):
 		flag = True
 		votes = 0
+		votes_yes = 0
+		votes_plus1 = 0
+		votes_plus2 = 0
 		votes_total = 0
 		votes_percent = 0
 		votes_percent_by_chat = 0
@@ -295,6 +268,12 @@ class MyBot:
 		msg = f"*{escape_md(referendum_params['title'])}*\n\n"
 
 		for button in buttons_db:
+			if(button == 1):
+				votes_yes = len(referendum_db[button])
+			elif(button == 4):
+				votes_plus1 = len(referendum_db[button])
+			elif(button == 5):
+				votes_plus2 = len(referendum_db[button])
 			votes_total += len(referendum_db[button])
 		
 		for button in buttons_db:		
@@ -309,14 +288,17 @@ class MyBot:
 			for usr in referendum_db[button]:
 				if(button == 1):
 					if(current_user == 0):
-						mark1 = '\\['
+						mark1 = ''
+						# mark1 = '\\['
 						if(len(referendum_db[button]) == 1):
-							mark2 = '\\]'
+							mark2 = ''
+							# mark2 = '\\]'
 						else:
 							mark2 = ''
 					elif(current_user <= referendum_params['max_num'] - 1):
 						mark1 = ''
-						mark2 = '\\]'
+						mark2 = ''
+						# mark2 = '\\]'
 					else:
 						mark1 = ''
 						mark2 = ''
@@ -335,7 +317,9 @@ class MyBot:
 		chat_members = await chat.get_member_count()
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
-		msg += f"👥 {votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\\."
+		msg += f"👥\n"
+		msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
+		msg += f"*Free slots left \\- {referendum_params['max_num'] - votes_yes - votes_plus1*2 - votes_plus2*3}*"
 
 		return msg
 
