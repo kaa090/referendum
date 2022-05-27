@@ -49,8 +49,8 @@ class MyBot:
 		self.bot = Bot(token = TOKEN)
 		self.dp = Dispatcher(self.bot)
 		self.dp.register_message_handler(self.cmd_create, commands = "create")
+		self.dp.register_message_handler(self.cmd_close, commands = "close")
 		# self.dp.register_message_handler(self.cmd_update, commands = "update")
-		# self.dp.register_message_handler(self.cmd_close, commands = "close")
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 		
@@ -85,16 +85,16 @@ class MyBot:
 		
 	# 	# await message.answer(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
 
-	# async def cmd_close(self, message: types.Message):
-	# 	args = message.get_args()
-	# 	msg_id = args[0]
+	async def cmd_close(self, message: types.Message):
+		args = message.get_args()
+		msg_id = args[0]
 
-	# 	logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={msg_id}, vote closed by {message.from_user.first_name}")
+		logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={msg_id}, vote closed by {message.from_user.first_name}")
 
-	# 	msg = await self.update_message(message.chat, msg_id)
-	# 	# keyboard = self.get_keyboard(message.chat.id, message.message_id)
+		msg = await self.update_message(message.chat, msg_id)
+		# keyboard = self.get_keyboard(message.chat.id, message.message_id)
 		
-	# 	await EditMessageText(msg, chat_id = message.chat, msg_id = msg_id, parse_mode="MarkdownV2")
+		await self.bot.edit_message_text(msg, chat_id = message.chat, msg_id = msg_id, parse_mode="MarkdownV2")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		action = db.set_vote_db(chat_id=cbq.message.chat.id,
