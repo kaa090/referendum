@@ -50,7 +50,7 @@ class MyBot:
 		self.dp = Dispatcher(self.bot)
 		self.dp.register_message_handler(self.cmd_create, commands = "create")
 		self.dp.register_message_handler(self.cmd_close, commands = "close")
-		# self.dp.register_message_handler(self.cmd_update, commands = "update")
+		self.dp.register_message_handler(self.cmd_update, commands = "update")
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 		
@@ -70,31 +70,26 @@ class MyBot:
 		
 		await message.answer(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
 
-	# async def cmd_update(self, message: types.Message):
-	# 	pass
-	# 	# db.create_referendum_db(chat_id=message.chat.id, 
-	# 	# 						msg_id=message.message_id, 
-	# 	# 						user_id=message.from_user.id, 
-	# 	# 						user_name=get_username(message.from_user), 
-	# 	# 						args=message.get_args())
+	async def cmd_update(self, message: types.Message):
+		pass
+		# db.create_referendum_db(chat_id=message.chat.id, 
+		# 						msg_id=message.message_id, 
+		# 						user_id=message.from_user.id, 
+		# 						user_name=get_username(message.from_user), 
+		# 						args=message.get_args())
 
-	# 	# logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={message.message_id}, vote created by {message.from_user.first_name}")
+		# logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={message.message_id}, vote created by {message.from_user.first_name}")
 
-	# 	# msg = await self.update_message(message.chat, message.message_id)
-	# 	# keyboard = self.get_keyboard(message.chat.id, message.message_id)
-		
-	# 	# await message.answer(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
-
-	async def cmd_close(self, message: types.Message):
-		args = message.get_args()
-		msg_id = args[0]
-
-		logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={msg_id}, vote closed by {message.from_user.first_name}")
-
-		msg = await self.update_message(message.chat, msg_id)
+		# msg = await self.update_message(message.chat, message.message_id)
 		# keyboard = self.get_keyboard(message.chat.id, message.message_id)
 		
-		await self.bot.edit_message_text(msg, chat_id = message.chat, msg_id = msg_id, parse_mode="MarkdownV2")
+		# await message.answer(msg, reply_markup = keyboard, parse_mode="MarkdownV2")
+
+	async def cmd_close(self, message: types.Message):
+		msg_id = int(message.get_args())
+		msg = await self.update_message(message.chat, msg_id)
+		await self.bot.edit_message_text(msg, chat_id = message.chat.id, message_id = msg_id + 1)
+		logging.info(f"chatID={message.chat.id}({message.chat.title}), msgID={msg_id}, vote closed by {message.from_user.first_name}")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		action = db.set_vote_db(chat_id=cbq.message.chat.id,
@@ -186,6 +181,7 @@ class MyBot:
 		diff = referendum_params['max_num'] - votes_yes
 		next_candidate = get_next_candidate(referendum, buttons)
 
+		msg += f"*Total confirmed: {votes_yes}*\n"
 		if(diff >= 0):
 			msg += f"*Free slots left: {diff}*"
 		else:
