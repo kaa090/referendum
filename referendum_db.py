@@ -96,6 +96,30 @@ def get_referendum_db(chat_id, msg_id):
 
 	return referendum_params
 
+def edit_referendum_db(chat_id, msg_id, args):
+	args = args.split("|")
+	
+	if len(args) == 2:
+		max_num = args[1]
+		sql = '''UPDATE referendums
+					SET max_num = ?
+					WHERE chat_id = ? and
+							msg_id = ?'''
+		row = [(max_num, chat_id, msg_id)]
+	elif len(args) == 3:
+		max_num = args[1]
+		title = args[2]
+		sql = '''UPDATE referendums
+					SET title = ?,
+						max_num = ?
+					WHERE chat_id = ? and
+							msg_id = ?'''
+		row = [(title, max_num, chat_id, msg_id)]	
+	else:
+		return
+
+	exec_sql(sql, row)
+
 def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	con = db_connect()
 	con.row_factory = sqlite3.Row
