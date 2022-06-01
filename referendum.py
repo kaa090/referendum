@@ -81,6 +81,7 @@ class MyBot:
 
 		self.bot = Bot(token = TOKEN)
 		self.dp = Dispatcher(self.bot)
+		self.dp.register_message_handler(self.cmd_del, commands = "del")
 		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_create, commands = "create")
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
@@ -91,8 +92,15 @@ class MyBot:
 
 		executor.start_polling(self.dp, skip_updates = True)
 
+	async def cmd_del(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+
+		await self.bot.delete_message(chat_id, 199)
+		
 	async def cmd_get(self, message: types.Message):
 		chat_id = message.chat.id
+		msg_id = message.message_id
 		msg = []
 
 		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
@@ -103,6 +111,7 @@ class MyBot:
 		if msg:			
 			await self.bot.send_message(chat_id, '\n'.join(msg))
 		
+		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} got his votes: {'; '.join(msg)}")
 
 	async def cmd_create(self, message: types.Message):
@@ -125,10 +134,12 @@ class MyBot:
 
 			msg_log = f"vote created by {message.from_user.first_name}"
 		
+		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, {msg_log}")
 
 	async def cmd_update(self, message: types.Message):
 		chat_id = message.chat.id
+		msg_id_del = message.message_id
 		args = message.get_args().split("|")
 
 		msg_log = check_input('update', args)
@@ -150,6 +161,7 @@ class MyBot:
 			else:
 				msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
 		
+		await self.bot.delete_message(chat_id, msg_id_del)
 		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
 	async def cmd_open(self, message: types.Message):
@@ -160,6 +172,7 @@ class MyBot:
 
 	async def cmd_open_close(self, message: types.Message, status):
 		chat_id = message.chat.id
+		msg_id_del = message.message_id
 		args = message.get_args()
 
 		msg_log = check_input('open_close', args)
@@ -190,6 +203,7 @@ class MyBot:
 		else:
 			msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
 
+		await self.bot.delete_message(chat_id, msg_id_del)
 		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
