@@ -98,7 +98,7 @@ class MyBot:
 		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
 
 		for r in referendums:
-			msg.append(f"msg_id = {r['msg_id']}, title = {r['title']}")
+			msg.append(f"{{msg_id = {r['msg_id']}, title = {r['title']}}}")
 		
 		if msg:			
 			await self.bot.send_message(chat_id, '\n'.join(msg))
