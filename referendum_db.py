@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+import logging
 from config import FILE_DB
 
 def db_connect():
@@ -16,6 +17,7 @@ def create_tables():
 	cur.execute('''CREATE TABLE IF NOT EXISTS referendums(
 						chat_id integer, 
 						msg_id integer, 
+						status integer,
 						title text,
 						max_num integer, 
 						user_id integer,
@@ -56,28 +58,55 @@ def exec_sql(sql, vals):
 		logging.warning(e)
 
 def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
-	args = args.split("|")
-	
 	max_num = args[0]
 	factors = args[1].split(",")
 	title = args[2]
 
 	args = args[2:]
 
-	sql = f'''INSERT INTO referendums
-				(chat_id, msg_id, title, max_num, user_id, user_name, datum) 
-				VALUES(?, ?, ?, ?, ?, ?, ?)'''
-	row = [(chat_id, msg_id, title, max_num, user_id, user_name, datetime.datetime.now())]	
+	sql = '''INSERT INTO referendums
+				(chat_id, msg_id, status, title, max_num, user_id, user_name, datum) 
+				VALUES(?, ?, ?, ?, ?, ?, ?, ?)'''
+	row = [(chat_id, msg_id, 1, title, max_num, user_id, user_name, datetime.datetime.now())]	
 	exec_sql(sql, row)
 
 	rows = []
 	for button_id in range(1, len(args)):
 		rows.append((chat_id, msg_id, button_id, int(factors[button_id - 1]), args[button_id]))
 
-	sql = f'''INSERT INTO rfr_buttons
+	sql = '''INSERT INTO rfr_buttons
 				(chat_id, msg_id, button_id, button_factor, button_text)
 				VALUES(?, ?, ?, ?, ?)'''
 	exec_sql(sql, rows)
+
+def get_referendums_by_user_id_db(chat_id, user_id):
+	referendums = []
+	
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''SELECT * FROM referendums
+				WHERE referendums.chat_id = {} and
+						referendums.status = {} and
+						referendums.user_id = {}
+			'''.format(chat_id, 1, user_id)
+
+	rows = cur.execute(sql).fetchall()
+	con.close()
+
+	for row in rows:
+		referendum = {}
+		
+		referendum['msg_id'] = row['msg_id']
+		referendum['status'] = row['status']
+		referendum['title'] = row['title']
+		referendum['max_num'] = row['max_num']
+		referendum['user_id'] = row['user_id']
+
+		referendums.append(referendum)
+
+	return referendums
 
 def get_referendum_db(chat_id, msg_id):
 	referendum_params = {}
@@ -86,37 +115,44 @@ def get_referendum_db(chat_id, msg_id):
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT * FROM referendums
-				WHERE referendums.chat_id = {chat_id} and
-						referendums.msg_id = {msg_id}'''	
+	sql = '''SELECT * FROM referendums
+				WHERE referendums.chat_id = {} and
+						referendums.msg_id = {}
+			'''.format(chat_id, msg_id)
+
 	row = cur.execute(sql).fetchone()
 
-	referendum_params['title'] = row['title']
-	referendum_params['max_num'] = row['max_num']
+	if row:
+		referendum_params['status'] = row['status']
+		referendum_params['title'] = row['title']
+		referendum_params['max_num'] = row['max_num']
+		referendum_params['user_id'] = row['user_id']
 
 	return referendum_params
 
-def edit_referendum_db(chat_id, msg_id, args):
-	args = args.split("|")
-	
-	if len(args) == 2:
-		max_num = args[1]
+def update_referendum_db(chat_id, msg_id, title, max_num):
+	if title:
+		sql = '''UPDATE referendums
+					SET title = ?
+					WHERE chat_id = ? and
+							msg_id = ?'''
+		row = [(title, chat_id, msg_id)]
+		exec_sql(sql, row)
+
+	if max_num:
 		sql = '''UPDATE referendums
 					SET max_num = ?
 					WHERE chat_id = ? and
 							msg_id = ?'''
 		row = [(max_num, chat_id, msg_id)]
-	elif len(args) == 3:
-		max_num = args[1]
-		title = args[2]
-		sql = '''UPDATE referendums
-					SET title = ?,
-						max_num = ?
-					WHERE chat_id = ? and
-							msg_id = ?'''
-		row = [(title, max_num, chat_id, msg_id)]	
-	else:
-		return
+		exec_sql(sql, row)
+
+def set_referendum_status_db(chat_id, msg_id, status):
+	sql = '''UPDATE referendums
+				SET status = ?
+				WHERE chat_id = ? and
+						msg_id = ?'''
+	row = [(status, chat_id, msg_id)]
 
 	exec_sql(sql, row)
 
@@ -124,6 +160,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	con = db_connect()
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
+
 	action = ''
 	button_old = 0	
 	datum = datetime.datetime.now()
@@ -132,7 +169,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	for btn_id in referendum:
 		for usr in referendum[btn_id]['roster'] + referendum[btn_id]['bench']:
 			if(usr['user_id'] == user_id):
-				sql = f'''INSERT INTO rfr_log
+				sql = '''INSERT INTO rfr_log
 							(chat_id, msg_id, button_id, user_id, user_name, datum, button_status) 
 							VALUES(?, ?, ?, ?, ?, ?, ?)'''
 				row = [(chat_id, msg_id, btn_id, user_id, user_name, datum, 0)]
@@ -142,7 +179,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 				action = 'unvoted'
 
 	if(button_old != button_id):
-		sql = f'''INSERT INTO rfr_log
+		sql = '''INSERT INTO rfr_log
 					(chat_id, msg_id, button_id, user_id, user_name, datum, button_status) 
 					VALUES(?, ?, ?, ?, ?, ?, ?)'''
 		row = [(chat_id, msg_id, button_id, user_id, user_name, datum, 1)]
@@ -157,24 +194,26 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	
 
 def get_votes_db(chat_id, msg_id):
+	referendum = []
+
 	con = db_connect()
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT rfr_buttons.button_id, user_id, user_name, MAX(datum) as datum, button_status
+	sql = '''SELECT rfr_buttons.button_id, user_id, user_name, MAX(datum) as datum, button_status
 				FROM rfr_buttons 
 				LEFT OUTER JOIN rfr_log
 				ON rfr_buttons.chat_id = rfr_log.chat_id and
 					rfr_buttons.msg_id = rfr_log.msg_id and
 					rfr_buttons.button_id = rfr_log.button_id
-				WHERE rfr_buttons.chat_id = {chat_id} and
-						rfr_buttons.msg_id = {msg_id}
+				WHERE rfr_buttons.chat_id = {} and
+						rfr_buttons.msg_id = {}
 				GROUP BY rfr_buttons.button_id, user_id, user_name
-				ORDER BY rfr_buttons.button_id, datum'''
+				ORDER BY rfr_buttons.button_id, datum
+			'''.format(chat_id, msg_id)
 	rows = cur.execute(sql).fetchall()
 	con.close()
 
-	referendum = []
 
 	for row in rows:
 		if(row['button_status']):
@@ -195,10 +234,11 @@ def get_buttons_db(chat_id, msg_id):
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
-	sql = f'''SELECT button_id, button_factor, button_text
+	sql = '''SELECT button_id, button_factor, button_text
 				FROM rfr_buttons
-				WHERE chat_id = {chat_id} and
-						msg_id = {msg_id}'''		
+				WHERE chat_id = {} and
+						msg_id = {}
+			'''.format(chat_id, msg_id)		
 	rows = cur.execute(sql).fetchall()
 	con.close()
 
@@ -224,6 +264,7 @@ def select_all(tab):
 	for row in cur.execute(f'SELECT * FROM {tab}'):
 		rows.append(row)
 	con.close()
+
 	return rows
 
 def print_tabs(*args):
@@ -262,7 +303,8 @@ def is_free_slots(roster_bench, buttons, button_factor, max_num):
 		return False
 
 def get_roster_bench(referendum, buttons, max_num):
-	roster_bench = {}	
+	roster_bench = {}
+
 	buttons_with_factor = []
 	
 	for button in buttons:
@@ -280,3 +322,19 @@ def get_roster_bench(referendum, buttons, max_num):
 			roster_bench[r['button_id']]['roster'].append(r)
 
 	return roster_bench
+
+def check_user_id(chat_id, msg_id, user_id):
+	referendum_params = get_referendum_db(chat_id, msg_id)
+
+	if user_id == referendum_params['user_id']:
+		return True
+	else:
+		return False
+
+def check_msg_id(chat_id, msg_id):	
+	referendum_params = get_referendum_db(chat_id, msg_id)
+
+	if referendum_params:
+		return True
+	else:
+		return False
