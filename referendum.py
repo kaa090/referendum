@@ -12,12 +12,12 @@ def check_input(func, args):
 	if func == 'create':
 		if len(args) < 4:
 			return "usage: /create max_players|Num_1,...,Num_k|title|button_1|...|button_k"
-		
+
 		if args[0].isnumeric():
 			max_num = args[0]
 		else:
 			return "max_players is a number"
-		
+
 		factors = args[1].split(",")
 		for f in factors:
 			if f.isnumeric() == False:
@@ -99,11 +99,13 @@ class MyBot:
 		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
 
 		for r in referendums:
-			msg.append(f"{{msg_id = {r['msg_id']}, title = {r['title']}}}")
-		
-		if msg:			
-			await self.bot.send_message(chat_id, '\n'.join(msg))
-		
+			msg.append(f"{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title = {r['title']}}}")
+
+		if msg:
+			await self.bot.send_message(message.from_user.id, '\n'.join(msg))
+		else:
+			await self.bot.send_message(message.from_user.id, f"There're no active referendums in \"{message.chat.title}\" now")
+
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} got his votes: {'; '.join(msg)}")
 
@@ -124,9 +126,9 @@ class MyBot:
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+			await self.bot.pin_chat_message(chat_id, msg_id + 1)
 
 			msg_log = f"vote created by {message.from_user.first_name}"
-		
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, {msg_log}")
 
@@ -137,7 +139,7 @@ class MyBot:
 
 		msg_log = check_input('update', args)
 
-		if msg_log == '':		
+		if msg_log == '':
 			msg_id = int(args[0])
 
 			if db.check_msg_id(chat_id, msg_id):
@@ -153,7 +155,7 @@ class MyBot:
 					msg_log = f"msgID={msg_id}, user {message.from_user.first_name} unsuccesefully tried to edit foreign vote"
 			else:
 				msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
-		
+
 		await self.bot.delete_message(chat_id, msg_id_del)
 		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
@@ -172,7 +174,7 @@ class MyBot:
 
 		if msg_log == '':
 			msg_id = int(args)
-			
+
 			if db.check_msg_id(chat_id, msg_id):
 				if db.check_user_id(chat_id, msg_id, message.from_user.id):
 					db.set_referendum_status_db(chat_id, msg_id, status)
@@ -187,6 +189,12 @@ class MyBot:
 						action = 'closed'
 
 					await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+					
+					if status:
+						await self.bot.pin_chat_message(chat_id, msg_id + 1)
+					else:
+						await self.bot.unpin_chat_message(chat_id, msg_id + 1)
+
 
 					msg_log = f"msgID={msg_id}, vote {action} by {message.from_user.first_name}"
 				else:
@@ -211,7 +219,7 @@ class MyBot:
 
 		msg = await self.update_message(cbq.message.chat, msg_id)
 		keyboard = self.get_keyboard(chat_id, msg_id)
-		
+
 		with suppress(MessageNotModified):
 			await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
 		await cbq.answer()
@@ -235,7 +243,7 @@ class MyBot:
 		keyboard.add(*keyboard_btns)
 
 		return keyboard
-	
+
 	async def update_message(self, chat, msg_id):
 		chat_id = chat.id
 		chat_members = await chat.get_member_count()
@@ -249,7 +257,7 @@ class MyBot:
 		referendum_params = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
 		referendum = db.get_votes_db(chat_id, msg_id)
-		
+
 		msg = f"*{escape_md(referendum_params['title'])}*\n\n"
 
 		for button_id in buttons:
@@ -286,7 +294,7 @@ class MyBot:
 
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
-		msg += f"👥👥👥👥\n"
+		msg += f"👥👥👥👥\n"		
 		msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
 
 		diff = referendum_params['max_num'] - votes_yes
