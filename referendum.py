@@ -81,7 +81,6 @@ class MyBot:
 
 		self.bot = Bot(token = TOKEN)
 		self.dp = Dispatcher(self.bot)
-		self.dp.register_message_handler(self.cmd_del, commands = "del")
 		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_create, commands = "create")
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
@@ -92,12 +91,6 @@ class MyBot:
 
 		executor.start_polling(self.dp, skip_updates = True)
 
-	async def cmd_del(self, message: types.Message):
-		chat_id = message.chat.id
-		msg_id = message.message_id
-
-		await self.bot.delete_message(chat_id, 199)
-		
 	async def cmd_get(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
