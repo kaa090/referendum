@@ -126,10 +126,14 @@ class MyBot:
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+<<<<<<< HEAD
 			try:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 			except:
 				logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, not enough rights to manage pinned messages in the chat")
+=======
+			await self.bot.pin_chat_message(chat_id, msg_id + 1)
+>>>>>>> 41a6ca02715d63b0b8d3c960c3959f843f7cfec3
 
 			msg_log = f"vote created by {message.from_user.first_name}"
 		await self.bot.delete_message(chat_id, msg_id)
@@ -194,10 +198,14 @@ class MyBot:
 					await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
 					
 					if status:
+<<<<<<< HEAD
 						try:
 							await self.bot.pin_chat_message(chat_id, msg_id + 1)
 						except:
 							logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, not enough rights to manage pinned messages in the chat")
+=======
+						await self.bot.pin_chat_message(chat_id, msg_id + 1)
+>>>>>>> 41a6ca02715d63b0b8d3c960c3959f843f7cfec3
 					else:
 						await self.bot.unpin_chat_message(chat_id, msg_id + 1)
 
