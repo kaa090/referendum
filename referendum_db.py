@@ -42,6 +42,14 @@ def create_tables():
 						datum text,
 						button_status integer, 
 						PRIMARY KEY(chat_id, msg_id, button_id, user_id, user_name, datum))''')
+
+	cur.execute('''CREATE TABLE IF NOT EXISTS regular_players(
+						chat_id integer, 
+						user_id integer,
+						user_name text, 
+						player_type integer,
+						PRIMARY KEY(chat_id, user_id))''')
+
 	con.commit()
 	con.close()
 
@@ -61,7 +69,6 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 	max_num = args[0]
 	factors = args[1].split(",")
 	title = args[2]
-
 	args = args[2:]
 
 	sql = '''INSERT INTO referendums
@@ -250,9 +257,12 @@ def get_buttons_db(chat_id, msg_id):
 def drop_tables():
 	con = db_connect()
 	cur = con.cursor()
+
 	cur.execute('DROP TABLE IF EXISTS referendums')
 	cur.execute('DROP TABLE IF EXISTS rfr_buttons')
 	cur.execute('DROP TABLE IF EXISTS rfr_log')
+	cur.execute('DROP TABLE IF EXISTS regular_players')
+	
 	con.commit()
 	con.close()
 
@@ -287,6 +297,11 @@ def print_tabs(*args):
 
 		print('rfr_log')
 		rows = select_all('rfr_log')
+		for row in rows:
+			print(row)
+
+		print('regular_players')
+		rows = select_all('regular_players')
 		for row in rows:
 			print(row)	
 
@@ -338,3 +353,60 @@ def check_msg_id(chat_id, msg_id):
 		return True
 	else:
 		return False
+
+def get_regular_players_db(chat_id):
+	players = []
+	
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''SELECT *
+				FROM regular_players
+				WHERE chat_id = {}'''.format(chat_id)
+	rows = cur.execute(sql).fetchall()
+	con.close()
+
+	for row in rows:
+		players.append({'chat_id': row['chat_id'], 'user_id': row['user_id'], 'user_name': row['user_name'], 'player_type': row['player_type']})
+	
+	return players
+
+def get_regular_player_db(chat_id, user_id):
+	player = {}
+
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''SELECT * FROM regular_players
+				WHERE chat_id = {} and
+					user_id = {}
+			'''.format(chat_id, user_id)
+
+	row = cur.execute(sql).fetchone()
+
+	if row:
+		player['chat_id'] = row['chat_id']
+		player['user_id'] = row['user_id']
+		player['user_name'] = row['user_name']
+		player['player_type'] = row['player_type']
+
+	return player
+
+def set_regular_player_db(chat_id, user_id, user_name, player_type):
+	sql = '''INSERT OR REPLACE
+				INTO regular_players
+				(chat_id, user_id, user_name, player_type)
+				VALUES(?, ?, ?, ?)'''
+	row = [(chat_id, user_id, user_name, player_type)]
+
+	exec_sql(sql, row)
+
+def is_regular_player(chat_id, user_id):
+	player = get_regular_player_db(chat_id, user_id)
+
+	if player:
+		return player['player_type']
+	else:
+		return 0
