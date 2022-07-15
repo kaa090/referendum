@@ -19,7 +19,8 @@ def create_tables():
 						msg_id integer, 
 						status integer,
 						title text,
-						max_num integer, 
+						max_num integer,
+						game_cost integer,
 						user_id integer,
 						user_name text,
 						datum text,
@@ -67,14 +68,15 @@ def exec_sql(sql, vals):
 
 def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 	max_num = args[0]
-	factors = args[1].split(",")
-	title = args[2]
-	args = args[2:]
+	game_cost = args[1]
+	factors = args[2].split(",")
+	title = args[3]
+	args = args[4:]
 
 	sql = '''INSERT INTO referendums
-				(chat_id, msg_id, status, title, max_num, user_id, user_name, datum) 
-				VALUES(?, ?, ?, ?, ?, ?, ?, ?)'''
-	row = [(chat_id, msg_id, 1, title, max_num, user_id, user_name, datetime.datetime.now())]	
+				(chat_id, msg_id, status, title, max_num, game_cost, user_id, user_name, datum) 
+				VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+	row = [(chat_id, msg_id, 1, title, max_num, game_cost, user_id, user_name, datetime.datetime.now())]	
 	exec_sql(sql, row)
 
 	rows = []
@@ -109,6 +111,7 @@ def get_referendums_by_user_id_db(chat_id, user_id):
 		referendum['status'] = row['status']
 		referendum['title'] = row['title']
 		referendum['max_num'] = row['max_num']
+		referendum['game_cost'] = row['game_cost']
 		referendum['user_id'] = row['user_id']
 
 		referendums.append(referendum)
@@ -133,11 +136,12 @@ def get_referendum_db(chat_id, msg_id):
 		referendum_params['status'] = row['status']
 		referendum_params['title'] = row['title']
 		referendum_params['max_num'] = row['max_num']
+		referendum_params['game_cost'] = row['game_cost']
 		referendum_params['user_id'] = row['user_id']
 
 	return referendum_params
 
-def update_referendum_db(chat_id, msg_id, title, max_num):
+def update_referendum_db(chat_id, msg_id, title, max_num, game_cost):
 	if title:
 		sql = '''UPDATE referendums
 					SET title = ?
@@ -152,6 +156,14 @@ def update_referendum_db(chat_id, msg_id, title, max_num):
 					WHERE chat_id = ? and
 							msg_id = ?'''
 		row = [(max_num, chat_id, msg_id)]
+		exec_sql(sql, row)
+
+	if game_cost:
+		sql = '''UPDATE referendums
+					SET game_cost = ?
+					WHERE chat_id = ? and
+							msg_id = ?'''
+		row = [(game_cost, chat_id, msg_id)]
 		exec_sql(sql, row)
 
 def set_referendum_status_db(chat_id, msg_id, status):
@@ -265,6 +277,58 @@ def drop_tables():
 	
 	con.commit()
 	con.close()
+
+def extend_table():
+	con = db_connect()
+	cur = con.cursor()
+
+	cur.execute('DROP TABLE IF EXISTS _referendums_old')
+	cur.execute('ALTER TABLE referendums RENAME TO _referendums_old')
+	cur.execute('''CREATE TABLE referendums(
+						chat_id integer, 
+						msg_id integer, 
+						status integer,
+						title text,
+						max_num integer,
+						game_cost integer DEFAULT 0,
+						user_id integer,
+						user_name text,
+						datum text,
+						PRIMARY KEY(chat_id, msg_id))''')
+
+	cur.execute('''INSERT INTO referendums (chat_id, msg_id, status, title, max_num, user_id, user_name, datum)
+					SELECT chat_id, msg_id, status, title, max_num, user_id, user_name, datum
+						FROM _referendums_old''')
+	cur.execute('DROP TABLE _referendums_old')
+
+	con.commit()
+	con.close()
+
+# def drop_table_column():
+# 	con = db_connect()
+# 	cur = con.cursor()
+
+# 	cur.execute('DROP TABLE IF EXISTS _referendums_old')
+# 	cur.execute('ALTER TABLE referendums RENAME TO _referendums_old')
+# 	cur.execute('''CREATE TABLE referendums(
+# 						chat_id integer, 
+# 						msg_id integer, 
+# 						status integer,
+# 						title text,
+# 						max_num integer,
+# 						game_cost integer
+# 						user_id integer,
+# 						user_name text,
+# 						datum text,
+# 						PRIMARY KEY(chat_id, msg_id))''')
+
+# 	cur.execute('''INSERT INTO referendums (chat_id, msg_id, status, title, max_num, game_cost, user_id, user_name, datum)
+# 						SELECT chat_id, msg_id, status, title, max_num, game_cost, user_id, user_name, datum
+# 						FROM _referendums_old''')
+# 	cur.execute('DROP TABLE _referendums_old')
+
+# 	con.commit()
+# 	con.close()
 
 def select_all(tab):
 	con = db_connect()
