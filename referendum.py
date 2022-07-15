@@ -257,7 +257,7 @@ class MyBot:
 					user_name = user_name,
 					button_id = int(callback_data['button']))
 
-		player_type = db.is_player_regular(chat_id, user_id)
+		player_type = db.is_regular_player(chat_id, user_id)
 		if(!player_type):
 			db.set_regular_player_db(chat_id, user_id, user_name, player_type)
 
