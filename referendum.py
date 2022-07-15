@@ -99,7 +99,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
-		
+
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
@@ -318,6 +318,9 @@ class MyBot:
 		votes_total = 0
 		votes_percent = 0
 		votes_percent_by_chat = 0
+		regular_players = 0
+		other_players = 0
+		entry_fee = 0
 
 		referendum_params = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
@@ -329,6 +332,13 @@ class MyBot:
 			button_votes = len(referendum[button_id]['roster']) + len(referendum[button_id]['bench'])
 			votes_yes += buttons[button_id]['button_factor'] * button_votes
 			votes_total += button_votes
+
+			if buttons[button_id]['button_factor']:
+				for usr in referendum[button_id]['roster']:
+					if db.is_regular_player(chat_id, usr['user_id']):
+						regular_players += 1
+					else:
+						other_players +=1
 
 		for button_id in buttons:
 			button_votes = len(referendum[button_id]['roster']) + len(referendum[button_id]['bench'])
@@ -362,15 +372,22 @@ class MyBot:
 		msg += f"👥👥👥👥\n"		
 		msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
 
-		diff = referendum_params['max_num'] - votes_yes
+		if votes_yes:		
+			entry_fee = round(referendum_params['game_cost']/votes_yes, 2)
+		else:
+			entry_fee = referendum_params['game_cost']
+
+		free_slots = referendum_params['max_num'] - votes_yes
 		next_candidate = get_next_candidate(referendum, buttons)
 
 		msg += f"*Entry fee: {referendum_params['game_cost']}/{votes_yes}*\n"
 		msg += f"*Total confirmed: {votes_yes}*\n"
-		if(diff >= 0):
-			msg += f"*Free slots left: {diff}*"
+		msg += f"*Regular players: {regular_players}*\n"
+		msg += f"*Other players: {other_players}*\n"
+		if(free_slots >= 0):
+			msg += f"*Free slots left: {free_slots}*"
 		else:
-			msg += f"*Extra people: {abs(diff)}*\n"
+			msg += f"*Extra people: {abs(free_slots)}*\n"
 			msg += f"*Next candidate: {escape_md(next_candidate)}*"
 
 		return msg
