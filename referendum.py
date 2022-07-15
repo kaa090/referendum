@@ -90,6 +90,7 @@ class MyBot:
 
 		self.bot = Bot(token = TOKEN)
 		self.dp = Dispatcher(self.bot)
+
 		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_create, commands = "create")
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
@@ -97,6 +98,8 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
+		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
+		
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
@@ -253,6 +256,15 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} set regular player: {player_id}({player_name})")
+	
+	async def cmd_extend_table(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		
+		db.extend_table()
+
+		await self.bot.delete_message(chat_id, msg_id)
+		logging.info(f"DB tables changed by user {message.from_user.first_name}")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
