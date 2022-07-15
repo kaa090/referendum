@@ -86,6 +86,8 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
 		self.dp.register_message_handler(self.cmd_close, commands = "close")
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
+		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
+		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
@@ -213,15 +215,51 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id_del)
 		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
+	async def cmd_get_regular_players(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		msg = []
+
+		players = db.get_regular_players_db(chat_id)
+
+		for p in players:
+			msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']}, user_name = {escape_md(p['user_name'])}, player_type = {p['player_type']}}}")
+
+		if msg:
+			await self.bot.send_message(message.from_user.id, '\n'.join(msg))
+		else:
+			await self.bot.send_message(message.from_user.id, f"There're no regular players in \"{message.chat.title}\" now")
+
+		await self.bot.delete_message(chat_id, msg_id)
+		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} got regular players: {'; '.join(msg)}")
+
+	async def cmd_set_regular_player(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		args = message.get_args()
+
+		player_id = args[0]
+		player_name = escape_md(args[1])
+		player_type = args[2]
+
+		await self.bot.delete_message(chat_id, msg_id)
+		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} set regular player: {player_id}({player_name})")
+
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
 		msg_id = cbq.message.message_id - 1
-
+		user_id = cbq.from_user.id
+		user_name = get_username(cbq.from_user)
+		
 		action = db.set_vote_db(chat_id = chat_id,
 					msg_id = msg_id,
-					user_id = cbq.from_user.id,
-					user_name = get_username(cbq.from_user),
+					user_id = user_id,
+					user_name = user_name,
 					button_id = int(callback_data['button']))
+
+		player_type = db.is_player_regular(chat_id, user_id)
+		if(!player_type):
+			db.set_regular_player_db(chat_id, user_id, user_name, player_type)
 
 		msg = await self.update_message(cbq.message.chat, msg_id)
 		keyboard = self.get_keyboard(chat_id, msg_id)
