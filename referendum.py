@@ -10,30 +10,39 @@ from config import TOKEN, FILE_LOG, LEVEL
 
 def check_input(func, args):
 	if func == 'create':
-		if len(args) < 4:
-			return "usage: /create max_players|Num_1,...,Num_k|title|button_1|...|button_k"
+		if len(args) < 5:
+			return "usage: /create max_players|game_cost|Num_1,...,Num_k|title|button_1|...|button_k"
 
 		if args[0].isnumeric():
 			max_num = args[0]
 		else:
 			return "max_players is a number"
 
-		factors = args[1].split(",")
+		if args[1].isnumeric():
+			max_num = args[1]
+		else:
+			return "game_cost is a number"
+
+		factors = args[2].split(",")
 		for f in factors:
 			if f.isnumeric() == False:
 				return "Num_1,...,Num_k should be a list of numbers separated by commas"
-		if len(factors) != len(args[3:]):
+
+		if len(factors) != len(args[4:]):
 			return "number of buttons not equals to number of factors"
 
 	elif func == 'update':
-		if len(args) < 3:
-			return "usage: /update msg_id|max_players|title"
+		if len(args) < 4:
+			return "usage: /update msg_id|max_players|game_cost|title"
 
 		if args[0].isnumeric() == False:
 			return "msg_id should be a number"
 
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
+
+		if args[2].isnumeric() == False:
+			return "game_cost should be a number"
 
 	elif func == 'open_close':
 		if args.isnumeric() == False:
@@ -149,7 +158,7 @@ class MyBot:
 
 			if db.check_msg_id(chat_id, msg_id):
 				if db.check_user_id(chat_id, msg_id, message.from_user.id):
-					db.update_referendum_db(chat_id = chat_id, msg_id = msg_id, max_num = args[1], title = args[2])
+					db.update_referendum_db(chat_id = chat_id, msg_id = msg_id, max_num = args[1], game_cost = args[2], title = args[3])
 
 					msg = await self.update_message(message.chat, msg_id)
 					keyboard = self.get_keyboard(chat_id, msg_id)
@@ -344,6 +353,7 @@ class MyBot:
 		diff = referendum_params['max_num'] - votes_yes
 		next_candidate = get_next_candidate(referendum, buttons)
 
+		msg += f"*Entry fee: {referendum_params['game_cost']}/{votes_yes}*\n"
 		msg += f"*Total confirmed: {votes_yes}*\n"
 		if(diff >= 0):
 			msg += f"*Free slots left: {diff}*"
