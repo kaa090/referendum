@@ -72,16 +72,16 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, args):
 	factors = args[2].split(",")
 	title = args[3]
 	args = args[4:]
-
+	
 	sql = '''INSERT INTO referendums
 				(chat_id, msg_id, status, title, max_num, game_cost, user_id, user_name, datum) 
 				VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)'''
-	row = [(chat_id, msg_id, 1, title, max_num, game_cost, user_id, user_name, datetime.datetime.now())]	
+	row = [(chat_id, msg_id, 1, title, max_num, game_cost, user_id, user_name, datetime.datetime.now())]
 	exec_sql(sql, row)
 
 	rows = []
-	for button_id in range(1, len(args)):
-		rows.append((chat_id, msg_id, button_id, int(factors[button_id - 1]), args[button_id]))
+	for button_id in range(1, len(args) + 1):
+		rows.append((chat_id, msg_id, button_id, int(factors[button_id - 1]), args[button_id - 1]))
 
 	sql = '''INSERT INTO rfr_buttons
 				(chat_id, msg_id, button_id, button_factor, button_text)
