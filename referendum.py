@@ -279,7 +279,7 @@ class MyBot:
 					button_id = int(callback_data['button']))
 
 		player_type = db.is_regular_player(chat_id, user_id)
-		if(!player_type):
+		if(player_type == 0):
 			db.set_regular_player_db(chat_id, user_id, user_name, player_type)
 
 		msg = await self.update_message(cbq.message.chat, msg_id)
