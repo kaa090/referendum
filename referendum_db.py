@@ -41,7 +41,7 @@ def create_tables():
 						user_id integer,
 						user_name text, 
 						datum text,
-						button_status integer, 
+						button_status integer,
 						PRIMARY KEY(chat_id, msg_id, button_id, user_id, user_name, datum))''')
 
 	cur.execute('''CREATE TABLE IF NOT EXISTS regular_players(
@@ -233,7 +233,6 @@ def get_votes_db(chat_id, msg_id):
 	rows = cur.execute(sql).fetchall()
 	con.close()
 
-
 	for row in rows:
 		if(row['button_status']):
 			referendum.append({'button_id': row['button_id'], 'user_id': row['user_id'], 'user_name': row['user_name'], 'datum': row['datum']})
@@ -383,8 +382,6 @@ def is_free_slots(roster_bench, buttons, button_factor, max_num):
 
 def get_roster_bench(referendum, buttons, max_num):
 	roster_bench = {}
-
-	buttons_with_factor = []
 	
 	for button in buttons:
 		roster_bench[button] = {'roster': [], 'bench': []}		
