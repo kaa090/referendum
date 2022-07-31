@@ -10,19 +10,15 @@ from contextlib import suppress
 import config
 
 def check_input(func, args):
-	if func == 'create':
-		if len(args) < 4:
-			return "usage: /create game_cost|max_players|title|button_1_text|...|button_5_text"
+	if func == 'game':
+		if len(args) < 8:
+			return "usage: /game game_cost|max_players|title|button_1_text|...|button_5_text"
 
-		if args[0].isnumeric():
-			max_players = args[0]
-		else:
-			return "game_cost is a number"
+		if args[0].isnumeric() == False:
+			return "game_cost should be a number"
 
-		if args[1].isnumeric():
-			max_players = args[1]
-		else:
-			return "max_players is a number"
+		if args[1].isnumeric() == False:
+			return "max_players should be a number"
 		
 	elif func == 'update':
 		if len(args) < 4:
@@ -51,25 +47,13 @@ def get_username(user):
 	else:
 		return user.first_name
 
-def get_next_player(referendum, buttons):
+def get_next_player(votes, buttons):
 	next_player = ''
 	btn_id = 1
 
 	if len(buttons):
-		for button_id in buttons:
-			if len(referendum[button_id]['queue']):
-				min_factor = buttons[button_id]['button_factor']
-				btn_id = button_id
-				break
-
-		for button_id in buttons:
-			factor = buttons[button_id]['button_factor']
-			if len(referendum[button_id]['queue']) and min_factor > factor:
-				min_factor = factor
-				btn_id = button_id
-
-		if referendum[btn_id]['queue']:
-			next_player = referendum[btn_id]['queue'][0]['user_name']
+		if votes[btn_id]['queue']:
+			next_player = votes[btn_id]['queue'][0]['user_name']
 
 	return next_player
 
@@ -142,7 +126,7 @@ class MyBot:
 									msg_id = msg_id,
 									user_id = message.from_user.id,
 									user_name = get_username(message.from_user),
-									rfr_type = rfr_type
+									rfr_type = rfr_type,
 									args = args)
 
 			msg = await self.update_message(message.chat, msg_id)
@@ -154,6 +138,7 @@ class MyBot:
 				logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, not enough rights to manage pinned messages in the chat")
 
 			msg_log = f"vote created by {message.from_user.first_name}"
+		
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, {msg_log}")
 
@@ -339,11 +324,16 @@ class MyBot:
 		votes_percent_by_chat = 0
 		regular_players = 0
 		other_players = 0
+		friends_players = 0
 		entry_fee = 0
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
+		friends = db.get_friends_db(chat_id, msg_id)
+
+		for f in friends:
+			friends_players += friends[f]['friends']
 
 		msg = f"*{escape_md(referendum['title'])}*\n\n"
 
@@ -366,11 +356,26 @@ class MyBot:
 			if votes_total:
 				votes_percent = int(100 * round(button_votes/votes_total, 2))
 
-			msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {button_votes} \\({votes_percent}%\\)\n"
+			if referendum['rfr_type'] == config.RFR_GAME and button_id == 4:
+				msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {friends_players}\n"
+
+				userlist = []
+				for user_id in friends:
+					userlist.append(f"{escape_md(friends[user_id]['user_name'])}\\({friends[user_id]['friends']}\\)")				
+
+				if userlist:
+					msg += ", ".join(userlist) + '\n\n'
+				else:
+					msg += '\n'
+					
+			elif referendum['rfr_type'] == config.RFR_GAME and button_id == 5:
+				pass
+			else:
+				msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {button_votes} \\({votes_percent}%\\)\n"
 
 			userlist = []
 			for usr in votes[button_id]['players']:
-				userlist.append(f"[{escape_md(usr['user_name'])}](tg://user?id={usr['user_id']})")
+				userlist.append(f"{escape_md(usr['user_name'])}")
 
 			if userlist:
 				msg += ", ".join(userlist) + '\n\n'
@@ -380,31 +385,35 @@ class MyBot:
 			if len(votes[button_id]['queue']):
 				userlist = []
 				for usr in votes[button_id]['queue']:
-					userlist.append(f"[{escape_md(usr['user_name'])}](tg://user?id={usr['user_id']})")
+					userlist.append(f"{escape_md(usr['user_name'])}")
 
 				if userlist:
 					msg += f"\\[{', '.join(userlist)}\\]\n\n"
 				else:
 					msg += '\n'
 
-		if referendum['rfr_type'] == config.RFR_GAME:
-			if(chat_members - 1):
-				votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
-			msg += f"👥👥👥👥\n"		
-			msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
-			msg += f"*Total confirmed: {votes_yes}*\n"
+		if(chat_members - 1):
+			votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
+		msg += f"👥👥👥👥\n"		
+		msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
 
+		if referendum['rfr_type'] == config.RFR_GAME:
+			msg += f"*Total confirmed: {votes_yes + friends_players}*\n"
+			
 			if referendum['game_cost']:
-				if votes_yes:
-					entry_fee = int(round(referendum['game_cost']/votes_yes, 0))
+				if votes_yes + friends_players > referendum['max_players'] > 0:
+					entry_fee = int(round(referendum['game_cost']/referendum['max_players'], 0))
+				elif votes_yes + friends_players:
+					entry_fee = int(round(referendum['game_cost']/(votes_yes + friends_players), 0))
 				else:
 					entry_fee = referendum['game_cost']
 
 				msg += f"*Entry fee: {entry_fee} ₽*\n"
 			
-			if referendum['max_num']:
-				free_slots = referendum['max_num'] - votes_yes
-				next_player = get_next_player(referendum, buttons)
+			if referendum['max_players']:
+				free_slots = referendum['max_players'] - votes_yes - friends_players
+				next_player = get_next_player(votes, buttons)
+
 				if(free_slots >= 0):
 					msg += f"*Free slots left: {free_slots}*"
 				else:

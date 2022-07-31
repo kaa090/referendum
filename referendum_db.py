@@ -210,7 +210,50 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	votes = get_votes_db(chat_id, msg_id)
 
 	if referendum['rfr_type'] == config.RFR_GAME:
-		pass
+		if button_id == 4:
+			sql = '''
+				INSERT INTO rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
+					VALUES(?, ?, ?, ?, ?, ?, ?)
+			'''
+			row = [(chat_id, msg_id, button_id, user_id, user_name, datum, 1)]
+			exec_sql(sql, row)
+
+			action = 'added friend'
+		elif button_id == 5:
+			sql = '''
+				INSERT INTO rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
+					VALUES(?, ?, ?, ?, ?, ?, ?)
+			'''
+			row = [(chat_id, msg_id, button_id, user_id, user_name, datum, -1)]
+			exec_sql(sql, row)
+
+			action = 'removed friend'
+		else:
+			for btn_id in range(1, 4):
+				for usr in votes[btn_id]['players'] + votes[btn_id]['queue']:
+					if usr['user_id'] == user_id:
+						sql = '''
+							INSERT INTO rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
+								VALUES(?, ?, ?, ?, ?, ?, ?)
+						'''
+						row = [(chat_id, msg_id, btn_id, user_id, user_name, datum, 0)]
+						exec_sql(sql, row)
+
+						button_old = btn_id
+						action = 'unvoted'
+
+			if button_old != button_id:
+				sql = '''
+					INSERT INTO rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
+						VALUES(?, ?, ?, ?, ?, ?, ?)
+				'''
+				row = [(chat_id, msg_id, button_id, user_id, user_name, datum, 1)]
+				exec_sql(sql, row)
+				
+				if action:
+					action = 'revoted'
+				else:
+					action = 'voted'
 	elif referendum['rfr_type'] == config.RFR_SINGLE:
 		for btn_id in votes:
 			for usr in votes[btn_id]['players'] + votes[btn_id]['queue']:
@@ -266,6 +309,9 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 def get_votes_db(chat_id, msg_id):
 	referendum_log = []
 
+	referendum = get_referendum_db(chat_id, msg_id)
+	buttons = get_buttons_db(chat_id, msg_id)
+	
 	con = db_connect()
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
@@ -294,8 +340,6 @@ def get_votes_db(chat_id, msg_id):
 			referendum_log.append({'button_id': row['button_id'], 'user_id': row['user_id'], 'user_name': row['user_name'], 'datum': row['datum']})
 
 	referendum_log = sorted(referendum_log, key = lambda x: x['datum'])
-	buttons = get_buttons_db(chat_id, msg_id)
-	referendum = get_referendum_db(chat_id, msg_id)
 	players_queue = get_players_queue(referendum_log, buttons, referendum['rfr_type'], referendum['max_players'])
 
 	if referendum['rfr_type'] == 0:
@@ -448,18 +492,20 @@ def get_players_queue(referendum_log, buttons, rfr_type, max_num):
 	players_queue = {}
 	
 	for button in buttons:
-		players_queue[button] = {'players': [], 'queue': []}		
+		players_queue[button] = {'players': [], 'queue': []}
 		
 	for r in referendum_log:
-		button_id = r['button_id']
-		
-		if button_id == 1 and rfr_type == config.RFR_GAME:		
+		button_id = r['button_id']		
+
+		if rfr_type == config.RFR_GAME and button_id == 1:		
 			if is_free_slots(players_queue, buttons, max_num):
-				players_queue[r['button_id']]['players'].append(r)				
+				players_queue[r['button_id']]['players'].append(r)
 			else:
-				players_queue[r['button_id']]['queue'].append(r)				
+				players_queue[r['button_id']]['queue'].append(r)
+		elif rfr_type == config.RFR_GAME and ( button_id == 4 or button_id == 5 ):
+			pass
 		else:
-			players_queue[r['button_id']]['players'].append(r)			
+			players_queue[r['button_id']]['players'].append(r)
 
 	return players_queue
 
@@ -544,24 +590,25 @@ def is_regular_player(chat_id, user_id):
 
 def get_friends_db(chat_id, msg_id):
 	friends = {}
-	
+
 	con = db_connect()
 	con.row_factory = sqlite3.Row
 	cur = con.cursor()
 
 	sql = '''
-		SELECT user_id, sum(button_status) as friends
+		SELECT user_id, user_name, sum(button_status) as friends
 			FROM rfr_log
 			WHERE 
 				chat_id = {} and
 				msg_id = {} and
 				button_id in (4, 5)
-			GROUP BY user_id
+			GROUP BY user_id, user_name
 	'''.format(chat_id, msg_id)
 	rows = cur.execute(sql).fetchall()
 	con.close()
 
 	for row in rows:
-		friends[row['user_id']] = row['friends']
+		if row['friends'] > 0:
+			friends[row['user_id']] = {'user_name': row['user_name'], 'friends': row['friends']}
 
 	return friends		
