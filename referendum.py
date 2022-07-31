@@ -179,12 +179,17 @@ class MyBot:
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		args = message.get_args()
+		
+		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
 
-		msg_log = check_input('open_close', args)
+		if status == 0 and len(referendums) == 1:
+			msg_id = referendums[0]['msg_id']
+			msg_log = ''
+		else:
+			msg_id = int(args)
+			msg_log = check_input('open_close', args)
 
 		if msg_log == '':
-			msg_id = int(args)
-
 			if db.check_msg_id(chat_id, msg_id):
 				if db.check_user_id(chat_id, msg_id, message.from_user.id):
 					db.set_referendum_status_db(chat_id, msg_id, status)
