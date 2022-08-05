@@ -514,15 +514,25 @@ class MyBot:
 					else:
 						other_players +=1
 
-		if referendum['max_players']:
-			free_slots = referendum['max_players'] - button_1_votes - friends_players
-
-			if(free_slots > 0):
-				msg = f"*\\[{button_1_votes + friends_players}\\/{referendum['max_players']}\\] {escape_md(referendum['title'])}*\n\n"
+		if flag_game_game2:
+			if referendum['max_players']:
+				free_slots = referendum['max_players'] - button_1_votes - friends_players
+				
+				if(free_slots > 0):
+					plr_yes = button_1_votes + friends_players
+				else:
+					plr_yes = referendum['max_players']
+				plr_max = referendum['max_players']
 			else:
-				msg = f"*\\[{referendum['max_players']}\\/{referendum['max_players']}\\] {escape_md(referendum['title'])}*\n\n"
+				plr_yes = button_1_votes + friends_players
+				plr_max = chat_members - 1
+
+			msg = f"*\\[{plr_yes}\\/{plr_max}\\] {escape_md(referendum['title'])}*\n\n"
 		else:
-			msg = f"*\\[{unique_users_votes}\\/{chat_members - 1}\\] {escape_md(referendum['title'])}*\n\n"
+			plr_yes = unique_users_votes
+			plr_max = chat_members - 1
+
+		msg = f"*\\[{plr_yes}\\/{plr_max}\\] {escape_md(referendum['title'])}*\n\n"
 
 		for button_id in buttons:
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
