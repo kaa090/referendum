@@ -9,9 +9,9 @@ from aiogram.utils.markdown import escape_md
 from contextlib import suppress
 import config
 
-def check_input(func, args):
+def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 	if func == 'game':
-		if len(args) < 8:
+		if len(args) != 8:
 			return "usage: /game game_cost|max_players|title|button_1_text|...|button_5_text"
 
 		if args[0].isnumeric() == False:
@@ -19,24 +19,55 @@ def check_input(func, args):
 
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
-		
-	elif func == 'update':
-		if len(args) < 4:
-			return "usage: /update msg_id|game_cost|max_players|title"
+
+	elif func == 'game2':
+		if len(args) != 9:
+			return "usage: /game game_cost|max_players|title|button_1_text|...|button_6_text"
 
 		if args[0].isnumeric() == False:
-			return "msg_id should be a number"
-
-		if args[1].isnumeric() == False:
 			return "game_cost should be a number"
 
-		if args[2].isnumeric() == False:
+		if args[1].isnumeric() == False:
 			return "max_players should be a number"
 
-	elif func == 'open_close':
-		if args.isnumeric() == False:
+	elif func == 'update':
+		if len(args) < 2:
+			return "usage: /update msg_id|game_cost|max_players|title|button_1_text|...|button_N_text"
+
+		if len(args) >= 1 and args[0].isnumeric() == False:
+			return "msg_id should be a number"
+		else:
+			if db.check_msg_id(chat_id = chat_id, msg_id = int(args[0])) == False:
+				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+			if db.check_user_id(chat_id = chat_id, msg_id = int(args[0]), user_id = user_id) == False:
+				return "this is not your referendum!"
+		if len(args) >= 2 and args[1].isnumeric() == False:
+			return "game_cost should be a number"
+		if len(args) >= 3 and args[2].isnumeric() == False:
+			return "max_players should be a number"
+
+	elif func in ('open', 'close', 'log'):
+		if args and args.isnumeric() == False or args == '' and msg_id == 0 or args == '' and func == 'open':
 			return "msg_id should be a number"
 
+		if args:
+			msg_id = int(args)
+
+		if db.check_msg_id(chat_id, msg_id) == False:
+			return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+		if db.check_user_id(chat_id, msg_id, user_id) == False:
+			return "this is not your referendum!"
+
+	elif func in ('get', 'get_reg'):
+		if args and args.isnumeric() == False:
+			return "1 - for active, 0 - for closed, nothing - for all"
+
+	elif func == 'set_reg':
+		if len(args) not in (2, 3):
+			return "usage: /set_reg user_id|player_type"
+
+		if args[0].isnumeric() == False or args[1].isnumeric() == False:
+			return "user_id and player_type should be a number"
 	return ''
 
 def get_username(user):
@@ -47,15 +78,46 @@ def get_username(user):
 	else:
 		return user.first_name
 
-def get_next_player(votes, buttons):
+def get_next_player(votes, buttons, friends):
 	next_player = ''
-	btn_id = 1
+	button_id = config.BUTTON_ID_YES
 
 	if len(buttons):
-		if votes[btn_id]['queue']:
-			next_player = votes[btn_id]['queue'][0]['user_name']
+		if votes[button_id]['queue']:
+			next_player = f"{votes[button_id]['queue'][0]['user_name']}"
+		else:
+			for usr_id in friends:
+				next_player = f"игрок от {friends[usr_id]['user_name']}"
+				break
 
 	return next_player
+
+def is_one_referendum_active(chat_id, user_id):
+	referendums = db.get_referendums_by_user_id_db(chat_id = chat_id, user_id = user_id, status = 1)
+
+	if len(referendums) == 1:
+		return referendums[0]['msg_id']
+	else:
+		return 0
+
+def read_file(file_name, chat_id = 0, msg_id = 0):
+	msg = ''
+
+	fd = open(file_name, encoding = 'utf-8', mode = "r")
+
+	if file_name == config.FILE_LOG:
+		pattern1 = f"chat_id={chat_id}"
+		pattern2 = f"msg_id={msg_id}"
+
+		for file_line in fd:
+			if pattern1 in file_line and pattern2 in file_line:
+				msg += file_line
+	else:
+		for file_line in fd:
+			msg += file_line
+
+	fd.close()
+	return msg
 
 class MyBot:
 	def __init__(self):
@@ -68,39 +130,97 @@ class MyBot:
 		self.bot = Bot(token = config.TOKEN)
 		self.dp = Dispatcher(self.bot)
 
+		self.dp.register_message_handler(self.cmd_start, commands = "start")
+		self.dp.register_message_handler(self.cmd_help, commands = "help")
 		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_game, commands = "game")
 		self.dp.register_message_handler(self.cmd_single, commands = "single")
 		self.dp.register_message_handler(self.cmd_multi, commands = "multi")
+		self.dp.register_message_handler(self.cmd_game2, commands = "game2")
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
 		self.dp.register_message_handler(self.cmd_close, commands = "close")
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
+		self.dp.register_message_handler(self.cmd_log, commands = "log")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
 		executor.start_polling(self.dp, skip_updates = True)
 
+	async def cmd_start(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
+		await self.bot.send_message(user_id, "Hello!")
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_help(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
+		msg = read_file(config.FILE_HELP)
+
+		await self.bot.send_message(user_id, msg)
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_log(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
+		args = message.get_args()
+		msg_id = is_one_referendum_active(chat_id, user_id)
+		msg_err = check_input('log', args, chat_id, msg_id, user_id)
+
+		if msg_err == '':
+			if args:
+				msg_id = int(args)
+			msg = read_file(config.FILE_LOG, chat_id, msg_id)
+
+			if not msg:
+				msg = 'no logs'
+			await self.bot.send_message(user_id, msg)
+
+		if msg_err:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
 	async def cmd_get(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args()
 		msg = []
+		status = -1
 
-		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
+		msg_err = check_input(func = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
-		for r in referendums:
-			msg.append(f"{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title = {r['title']}}}")
+		if msg_err == '':
+			if args:
+				status = int(args)
 
-		if msg:
-			await self.bot.send_message(message.from_user.id, '\n'.join(msg))
+			referendums = db.get_referendums_by_user_id_db(chat_id, user_id, status)
+
+			for r in referendums:
+				msg.append(f"""{{{chat_id}({message.chat.title}), 
+					msg_id = {r['msg_id']}, title = {r['title']}, status = {r['status']}, datum = {r['datum']}}}
+					""")
+
+			if msg:
+				msg = '\n'.join(msg)
+			else:
+				msg = f"There're no referendums in \"{message.chat.title}\""
+			await self.bot.send_message(user_id, msg)
 		else:
-			await self.bot.send_message(message.from_user.id, f"There're no active referendums in \"{message.chat.title}\" now")
+			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
-		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} got his votes: {'; '.join(msg)}")
 
 	async def cmd_game(self, message: types.Message):
 		await self.cmd_create(message, rfr_type = config.RFR_GAME)
@@ -108,6 +228,8 @@ class MyBot:
 		await self.cmd_create(message, rfr_type = config.RFR_SINGLE)
 	async def cmd_multi(self, message: types.Message):
 		await self.cmd_create(message, rfr_type = config.RFR_MULTI)
+	async def cmd_game2(self, message: types.Message):
+		await self.cmd_create(message, rfr_type = config.RFR_GAME2)
 
 	async def cmd_create(self, message: types.Message, rfr_type):
 		chat_id = message.chat.id
@@ -119,9 +241,16 @@ class MyBot:
 			max_players = 0
 			args = [game_cost] + [max_players] + args
 
-		msg_log = check_input('create', args)
+		if rfr_type == config.RFR_GAME:
+			check_type = 'game'
+		elif rfr_type == config.RFR_GAME2:
+			check_type = 'game2'
+		else:
+			check_type = ''
 
-		if msg_log == '':
+		msg_err = check_input(check_type, args)
+
+		if msg_err == '':
 			db.create_referendum_db(chat_id = chat_id,
 									msg_id = msg_id,
 									user_id = message.from_user.id,
@@ -132,153 +261,167 @@ class MyBot:
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
 			try:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 			except:
-				logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, not enough rights to manage pinned messages in the chat")
+				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
+				await self.bot.send_message(message.from_user.id, msg_err)
+				logging.error(msg_err)
 
-			msg_log = f"vote created by {message.from_user.first_name}"
-		
+			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote created by {get_username(message.from_user)}")
+		else:
+			await self.bot.send_message(message.from_user.id, msg_err)
+
 		await self.bot.delete_message(chat_id, msg_id)
-		logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, {msg_log}")
 
 	async def cmd_update(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
+		user_id = message.from_user.id
 		args = message.get_args().split("|")
+		msg_id = int(args[0])
 
-		msg_log = check_input('update', args)
+		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
 
-		if msg_log == '':
-			msg_id = int(args[0])
+		if msg_err == '':
+			db.update_referendum_db(chat_id = chat_id, args = args)
 
-			if db.check_msg_id(chat_id, msg_id):
-				if db.check_user_id(chat_id, msg_id, message.from_user.id):
-					db.update_referendum_db(chat_id = chat_id, msg_id = msg_id, max_players = args[1], game_cost = args[2], title = args[3])
+			msg = await self.update_message(message.chat, msg_id)
+			keyboard = self.get_keyboard(chat_id, msg_id)
+			await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
 
-					msg = await self.update_message(message.chat, msg_id)
-					keyboard = self.get_keyboard(chat_id, msg_id)
-					await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
-
-					msg_log = f"msgID={msg_id}, vote edited by {message.from_user.first_name}"
-				else:
-					msg_log = f"msgID={msg_id}, user {message.from_user.first_name} unsuccesefully tried to edit foreign vote"
-			else:
-				msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
+			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote edited by {get_username(message.from_user)}")
+		else:
+			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id_del)
-		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
 	async def cmd_open(self, message: types.Message):
-		await self.cmd_open_close(message, 1)
+		await self.cmd_open_close(message = message, status = 1)
 
 	async def cmd_close(self, message: types.Message):
-		await self.cmd_open_close(message, 0)
+		await self.cmd_open_close(message = message, status = 0)
 
 	async def cmd_open_close(self, message: types.Message, status):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
 		args = message.get_args()
-		
-		referendums = db.get_referendums_by_user_id_db(chat_id, message.from_user.id)
+		msg_id = is_one_referendum_active(chat_id, user_id)
 
-		if status == 0 and len(referendums) == 1:
-			msg_id = referendums[0]['msg_id']
-			msg_log = ''
+		if status == 1:
+			check_type = 'open'
 		else:
-			msg_id = int(args)
-			msg_log = check_input('open_close', args)
+			check_type = 'close'
+		msg_err = check_input(check_type, args, chat_id, msg_id, user_id)
 
-		if msg_log == '':
-			if db.check_msg_id(chat_id, msg_id):
-				if db.check_user_id(chat_id, msg_id, message.from_user.id):
-					db.set_referendum_status_db(chat_id, msg_id, status)
+		if msg_err == '':
+			if args:
+				msg_id = int(args)
 
-					msg = await self.update_message(message.chat, msg_id)
+			db.set_referendum_status_db(chat_id, msg_id, status)
+			msg = await self.update_message(message.chat, msg_id)
 
-					if status:
-						keyboard = self.get_keyboard(chat_id, msg_id)
-						action = 'reopened'
-					else:
-						keyboard = None
-						action = 'closed'
-
-					await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
-					
-					if status:
-						try:
-							await self.bot.pin_chat_message(chat_id, msg_id + 1)
-						except:
-							logging.info(f"chatID={chat_id}({message.chat.title}), msgID={msg_id}, not enough rights to manage pinned messages in the chat")
-					else:
-						await self.bot.unpin_chat_message(chat_id, msg_id + 1)
-
-
-					msg_log = f"msgID={msg_id}, vote {action} by {message.from_user.first_name}"
-				else:
-					msg_log = f"msgID={msg_id}, user {message.from_user.first_name} unsuccesefully tried to close foreign vote"
+			if status:
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				action = 'reopened'
 			else:
-				msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
-		else:
-			msg_log = f"user {message.from_user.first_name} mistaked with msg_id"
+				keyboard = None
+				action = 'closed'
+
+			await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+			if status:
+				try:
+					await self.bot.pin_chat_message(chat_id, msg_id + 1)
+				except:
+					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
+					logging.error(msg_err)
+			else:
+				await self.bot.unpin_chat_message(chat_id, msg_id + 1)
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote {action} by {get_username(message.from_user)}")
+
+		if msg_err:
+			await self.bot.send_message(message.from_user.id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id_del)
-		logging.info(f"chatID={chat_id}({message.chat.title}), {msg_log}")
 
 	async def cmd_get_regular_players(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		args = message.get_args()
 		msg = []
+		player_type = -1
 
-		players = db.get_regular_players_db(chat_id)
+		msg_err = check_input(func = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
-		for p in players:
-			msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']}, user_name = {escape_md(p['user_name'])}, player_type = {p['player_type']}}}")
+		if msg_err == '':
+			if args:
+				player_type = int(args)
 
-		if msg:
-			await self.bot.send_message(message.from_user.id, '\n'.join(msg))
-		else:
-			await self.bot.send_message(message.from_user.id, f"There're no regular players in \"{message.chat.title}\" now")
+			players = db.get_regular_players_db(chat_id, player_type)
+
+			for p in players:
+				msg.append(f"{{{chat_id}({message.chat.title}), player_type = {p['player_type']}, user_id = {p['user_id']} ({p['user_name']})}}")
+
+			if msg:
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg))
+			else:
+				await self.bot.send_message(message.from_user.id, f"There're no regular players in \"{message.chat.title}\" now")
+
+		if msg_err:
+			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
-		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} got regular players: {'; '.join(msg)}")
 
 	async def cmd_set_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
 		args = message.get_args().split("|")
-		
-		user_id = args[0]
-		player_type = args[1]
 
-		player = db.get_regular_player_db(chat_id, user_id)
+		user_name = ''
 
-		if player:
-			user_name = player['user_name']
+		msg_err = check_input(func = 'set_reg', args = args)
+
+		if msg_err == '':
+			user_id = args[0]
+			player_type = args[1]
+
+			player = db.get_regular_player_db(chat_id, user_id)
+
+			if player:
+				user_name = player['user_name']
+			elif len(args) == 3:
+				user_name = args[2]
+
+			db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = player_type)
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} set regular player {user_name}({user_id})")
+
 		else:
-			user_name = args[2]
-
-		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = player_type)
+			await self.bot.send_message(message.from_user.id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
-		logging.info(f"chatID={chat_id}({message.chat.title}), user {message.from_user.first_name} set regular player: {user_id}({user_name})")
-	
+
 	async def cmd_extend_table(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
-		
+
 		db.extend_table()
 		db.drop_table_column()
 
 		await self.bot.delete_message(chat_id, msg_id)
-		logging.info(f"DB tables changed by user {message.from_user.first_name}")
+		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
 		msg_id = cbq.message.message_id - 1
 		user_id = cbq.from_user.id
 		user_name = get_username(cbq.from_user)
-		
+
 		action = db.set_vote_db(chat_id = chat_id,
 					msg_id = msg_id,
 					user_id = user_id,
@@ -296,13 +439,13 @@ class MyBot:
 			await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
 		await cbq.answer()
 
-		logging.info(f"chatID={chat_id}({cbq.message.chat.title}), msgID={msg_id}, user {cbq.from_user.first_name} {action} for {int(callback_data['button'])}")
+		logging.info(f"chat_id={chat_id}({cbq.message.chat.title}), msg_id={msg_id}, user {get_username(cbq.from_user)} {action}, button {int(callback_data['button'])}")
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
-		
+
 		keyboard_btns = []
 
 		for button_id in buttons:
@@ -323,31 +466,47 @@ class MyBot:
 		chat_members = await chat.get_member_count()
 
 		button_votes = 0
-		votes_yes = 0
-		votes_total = 0
+		button_votes_total = 0
+		button_1_votes = 0
+		unique_users_votes = 0
 		votes_percent = 0
 		votes_percent_by_chat = 0
 		regular_players = 0
 		other_players = 0
 		friends_players = 0
 		entry_fee = 0
+		sym = ''
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
 		friends = db.get_friends_db(chat_id, msg_id)
 
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
+			flag_game_game2 = True
+		else:
+			flag_game_game2 = False
+
 		for f in friends:
 			friends_players += friends[f]['friends']
 
-		msg = f"*{escape_md(referendum['title'])}*\n\n"
+		unique_users = set()
+		for button_id in votes:
+			for player in votes[button_id]['players']:
+				if referendum['rfr_type'] == config.RFR_GAME2 and button_id == config.BUTTON_ID_OPT:
+					pass
+				else:
+					unique_users.add(player['user_id'])
+		unique_users_votes = len(unique_users)
 
 		for button_id in buttons:
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
-			votes_total += button_votes
 
-			if button_id == 1:
-				votes_yes = button_votes
+			if referendum['rfr_type'] != config.RFR_GAME2 or button_id != config.BUTTON_ID_OPT:
+				button_votes_total += button_votes
+
+			if button_id == config.BUTTON_ID_YES:
+				button_1_votes = button_votes
 
 				for usr in votes[1]['players']:
 					if db.is_regular_player(chat_id, usr['user_id']):
@@ -355,78 +514,105 @@ class MyBot:
 					else:
 						other_players +=1
 
+		if referendum['max_players']:
+			free_slots = referendum['max_players'] - button_1_votes - friends_players
+
+			if(free_slots > 0):
+				msg = f"*\\[{button_1_votes + friends_players}\\/{referendum['max_players']}\\] {escape_md(referendum['title'])}*\n\n"
+			else:
+				msg = f"*\\[{referendum['max_players']}\\/{referendum['max_players']}\\] {escape_md(referendum['title'])}*\n\n"
+		else:
+			msg = f"*\\[{unique_users_votes}\\/{chat_members - 1}\\] {escape_md(referendum['title'])}*\n\n"
+
 		for button_id in buttons:
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 
-			if votes_total:
-				votes_percent = int(100 * round(button_votes/votes_total, 2))
+			if button_votes_total:
+				votes_percent = int(100 * round(button_votes/button_votes_total, 2))
 
-			if referendum['rfr_type'] == config.RFR_GAME and button_id == 4:
-				msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {friends_players}\n"
+			if flag_game_game2 and button_id == config.BUTTON_ID_ADD:
+				if friends_players:
+					msg += "Игроки от\\:\n"
+
+					for user_id in friends:
+						if db.is_regular_player(chat_id, user_id):
+							sym = ''
+						else:
+							sym = '_'
+						msg += f"{sym}[{escape_md(friends[user_id]['user_name'])}](tg://user?id={user_id}){sym} \\- {friends[user_id]['friends']}\n"
+					msg += '\n'
+				else:
+					continue
+			elif flag_game_game2 and button_id == config.BUTTON_ID_DEL:
+				continue
+			else:
+				if referendum['rfr_type'] == config.RFR_GAME2 and button_id == config.BUTTON_ID_OPT:
+					msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {button_votes}\n"
+				else:
+					msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {button_votes} \\({votes_percent}%\\)\n"
 
 				userlist = []
-				for user_id in friends:
-					userlist.append(f"{escape_md(friends[user_id]['user_name'])}\\({friends[user_id]['friends']}\\)")				
+				for usr in votes[button_id]['players']:
+					if flag_game_game2:
+						if db.is_regular_player(chat_id, usr['user_id']):
+							sym = ''
+						else:
+							sym = '_'
+					userlist.append(f"{sym}[{escape_md(usr['user_name'])}](tg://user?id={usr['user_id']}){sym}")
 
 				if userlist:
-					msg += ", ".join(userlist) + '\n\n'
-				else:
-					msg += '\n'
-					
-			elif referendum['rfr_type'] == config.RFR_GAME and button_id == 5:
-				pass
-			else:
-				msg += f"{escape_md(buttons[button_id]['button_text'])} \\- {button_votes} \\({votes_percent}%\\)\n"
-
-			userlist = []
-			for usr in votes[button_id]['players']:
-				userlist.append(f"{escape_md(usr['user_name'])}")
-
-			if userlist:
-				msg += ", ".join(userlist) + '\n\n'
-			else:
+					msg += ", ".join(userlist) + '\n'
 				msg += '\n'
 
-			if len(votes[button_id]['queue']):
-				userlist = []
-				for usr in votes[button_id]['queue']:
-					userlist.append(f"{escape_md(usr['user_name'])}")
+				if len(votes[button_id]['queue']):
+					userlist = []
+					for usr in votes[button_id]['queue']:
+						if flag_game_game2:
+							if db.is_regular_player(chat_id, usr['user_id']):
+								sym = ''
+							else:
+								sym = '_'
+						userlist.append(f"{sym}[{escape_md(usr['user_name'])}](tg://user?id={usr['user_id']}){sym}")
 
-				if userlist:
-					msg += f"\\[{', '.join(userlist)}\\]\n\n"
-				else:
-					msg += '\n'
+					if userlist:
+						msg += f"\\[{', '.join(userlist)}\\]\n\n"
 
 		if(chat_members - 1):
-			votes_percent_by_chat = int(100 * round(votes_total/(chat_members-1), 2))
-		msg += f"👥👥👥👥\n"		
-		msg += f"{votes_total} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
+			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
+		msg += f"👥👥👥👥\n"
+		msg += f"{unique_users_votes} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
 
-		if referendum['rfr_type'] == config.RFR_GAME:
-			msg += f"*Total confirmed: {votes_yes + friends_players}*\n"
-			
+		if flag_game_game2:
+			# msg += f"*Total confirmed: {button_1_votes + friends_players}*\n"
+
+			if db.is_regular_players_used_db(chat_id):
+				msg += f"*Total confirmed: {button_1_votes + friends_players} \\(reg \\- {regular_players}, oth \\- {other_players + friends_players}\\)*\n"
+			else:
+				msg += f"*Total confirmed: {button_1_votes + friends_players}*\n"
+
+			if referendum['max_players']:
+				free_slots = referendum['max_players'] - button_1_votes - friends_players
+				next_player = get_next_player(votes, buttons, friends)
+
+				if(free_slots >= 0):
+					msg += f"*Free slots left: {free_slots}*\n"
+				else:
+					msg += f"*Extra people: {abs(free_slots)}*\n"
+					msg += f"*Next candidate: {escape_md(next_player)}*\n"
+
+			# if db.is_regular_players_used_db(chat_id):
+			# 	msg += f"\n*Regular players: {regular_players}*"
+			# 	msg += f"\n*Other players: {other_players}*"
+
 			if referendum['game_cost']:
-				if votes_yes + friends_players > referendum['max_players'] > 0:
-					entry_fee = int(round(referendum['game_cost']/referendum['max_players'], 0))
-				elif votes_yes + friends_players:
-					entry_fee = int(round(referendum['game_cost']/(votes_yes + friends_players), 0))
+				if button_1_votes + friends_players > referendum['max_players'] > 0:
+					entry_fee = int(round(referendum['game_cost'] / referendum['max_players'], 0))
+				elif button_1_votes + friends_players:
+					entry_fee = int(round(referendum['game_cost'] / (button_1_votes + friends_players), 0))
 				else:
 					entry_fee = referendum['game_cost']
 
 				msg += f"*Entry fee: {entry_fee} ₽*\n"
-			
-			if referendum['max_players']:
-				free_slots = referendum['max_players'] - votes_yes - friends_players
-				next_player = get_next_player(votes, buttons)
-
-				if(free_slots >= 0):
-					msg += f"*Free slots left: {free_slots}*"
-				else:
-					msg += f"*Extra people: {abs(free_slots)}*\n"
-					msg += f"*Next candidate: {escape_md(next_player)}*"
-
-			# msg += f"*Regular players: {regular_players}*\n"
-			# msg += f"*Other players: {other_players}*\n"
 
 		return msg
 
