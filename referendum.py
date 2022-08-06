@@ -134,6 +134,17 @@ def read_file(file_name, chat_id = 0, msg_id = 0):
 	fd.close()
 	return msg
 
+def sort_buttons(buttons, votes, rfr_type):
+	buttons_sorted = [] 
+	
+	for button_id in buttons:
+		button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
+		buttons_sorted.append({'button_id':button_id, 'votes': button_votes})
+	if rfr_type in (config.RFR_SINGLE, config.RFR_MULTI):
+		buttons_sorted = sorted(buttons_sorted, key = lambda x: x['votes'], reverse = True)
+
+	return buttons_sorted
+
 class MyBot:
 	def __init__(self):
 		logging.basicConfig(level = config.LEVEL,
@@ -492,7 +503,10 @@ class MyBot:
 
 		keyboard_btns = []
 
-		for button_id in buttons:
+		buttons_sorted = sort_buttons(buttons, votes, referendum['rfr_type'])
+		
+		for button in buttons_sorted:
+			button_id = button['button_id']
 			button_text = buttons[button_id]['button_text']
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 
