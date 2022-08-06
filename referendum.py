@@ -37,9 +37,10 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if len(args) >= 1 and args[0].isnumeric() == False:
 			return "msg_id should be a number"
 		else:
-			if db.check_msg_id(chat_id = chat_id, msg_id = int(args[0])) == False:
+			msg_id = int(args[0])
+			if db.check_msg_id(chat_id, msg_id) == False:
 				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
-			if db.check_user_id(chat_id = chat_id, msg_id = int(args[0]), user_id = user_id) == False:
+			if db.check_user_id(chat_id, msg_id, user_id) == False:
 				return "this is not your referendum!"
 		if len(args) >= 2 and args[1].isnumeric() == False:
 			return "game_cost should be a number"
@@ -68,6 +69,20 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 		if args[0].isnumeric() == False or args[1].isnumeric() == False:
 			return "user_id and player_type should be a number"
+
+	elif func == 'add_btn':
+		if len(args) != 2:
+			return "usage: /add_btn msg_id|button_text"
+
+		if args[0].isnumeric():
+			msg_id = int(args[0])
+			if db.check_msg_id(chat_id, msg_id) == False:
+				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+			if db.check_user_id(chat_id, msg_id, user_id) == False:
+				return "this is not your referendum!"			
+		else:
+			return "msg_id should be a number"
+
 	return ''
 
 def get_username(user):
@@ -142,6 +157,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
+		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
 
@@ -208,8 +224,7 @@ class MyBot:
 			referendums = db.get_referendums_by_user_id_db(chat_id, user_id, status)
 
 			for r in referendums:
-				msg.append(f"""{{{chat_id}({message.chat.title}), 
-					msg_id = {r['msg_id']}, title = {r['title']}, status = {r['status']}, datum = {r['datum']}}}
+				msg.append(f"""{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}
 					""")
 
 			if msg:
@@ -280,11 +295,12 @@ class MyBot:
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
-		msg_id = int(args[0])
-
-		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
+		
+		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
+			msg_id = int(args[0])
+
 			db.update_referendum_db(chat_id = chat_id, args = args)
 
 			msg = await self.update_message(message.chat, msg_id)
@@ -405,6 +421,34 @@ class MyBot:
 			await self.bot.send_message(message.from_user.id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_add_btn(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+		
+		msg_err = check_input(func = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		
+		if msg_err == '':
+			msg_id = int(args[0])
+			button_text = args[1]
+			referendum = db.get_referendum_db(chat_id, msg_id)
+		
+			if referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI):
+				db.add_button(chat_id, msg_id, button_text)
+
+				msg = await self.update_message(message.chat, msg_id)
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} added button {button_text}")
+			else:
+				await self.bot.send_message(message.from_user.id, f"Unable to add button. Type of referendum is GAME")
+		else:
+			await self.bot.send_message(message.from_user.id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_extend_table(self, message: types.Message):
 		chat_id = message.chat.id

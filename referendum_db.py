@@ -748,3 +748,29 @@ def get_friends_db(chat_id, msg_id):
 			friends[row['user_id']] = {'user_name': row['user_name'], 'friends': row['friends'], 'datum': row['datum']}
 
 	return friends
+
+def add_button(chat_id, msg_id, button_text):
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''
+		SELECT max(button_id) as button_id
+			from rfr_buttons
+			where 
+				chat_id = {} and
+				msg_id = {}
+	'''.format(chat_id, msg_id)
+	
+	row = cur.execute(sql).fetchone()
+	con.close()
+
+	if row:
+		button_id = row['button_id'] + 1
+
+		sql = '''
+			INSERT into rfr_buttons(chat_id, msg_id, button_id, button_text)
+				values(?, ?, ?, ?)
+		'''
+		row = [(chat_id, msg_id, button_id, button_text)]
+		exec_sql(sql, row)
