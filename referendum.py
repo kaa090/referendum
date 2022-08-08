@@ -503,9 +503,7 @@ class MyBot:
 
 		keyboard_btns = []
 
-		buttons_sorted = sort_buttons(buttons, votes, referendum['rfr_type'])
-		
-		for button in buttons_sorted:
+		for button_id in buttons:
 			button_id = button['button_id']
 			button_text = buttons[button_id]['button_text']
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
@@ -540,6 +538,8 @@ class MyBot:
 		votes = db.get_votes_db(chat_id, msg_id)
 		friends = db.get_friends_db(chat_id, msg_id)
 
+		buttons_sorted = sort_buttons(buttons, votes, referendum['rfr_type'])
+		
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
 			flag_game_game2 = True
 		else:
@@ -584,15 +584,15 @@ class MyBot:
 			else:
 				plr_yes = button_1_votes + friends_players
 				plr_max = chat_members - 1
-
-			msg = f"*\\[{plr_yes}\\/{plr_max}\\] {escape_md(referendum['title'])}*\n\n"
 		else:
 			plr_yes = unique_users_votes
 			plr_max = chat_members - 1
 
 		msg = f"*\\[{plr_yes}\\/{plr_max}\\] {escape_md(referendum['title'])}*\n\n"
 
-		for button_id in buttons:
+		for button in buttons_sorted:
+			button_id = button['button_id']
+		
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 
 			if button_votes_total:
