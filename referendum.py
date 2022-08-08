@@ -79,7 +79,7 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 			if db.check_msg_id(chat_id, msg_id) == False:
 				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
 			if db.check_user_id(chat_id, msg_id, user_id) == False:
-				return "this is not your referendum!"			
+				return "this is not your referendum!"
 		else:
 			return "msg_id should be a number"
 
@@ -136,7 +136,7 @@ def read_file(file_name, chat_id = 0, msg_id = 0):
 
 def sort_buttons(buttons, votes, rfr_type):
 	buttons_sorted = [] 
-	
+
 	for button_id in buttons:
 		button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 		buttons_sorted.append({'button_id':button_id, 'votes': button_votes})
@@ -306,7 +306,7 @@ class MyBot:
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
-		
+
 		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
@@ -438,14 +438,14 @@ class MyBot:
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
-		
+
 		msg_err = check_input(func = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
-		
+
 		if msg_err == '':
 			msg_id = int(args[0])
 			button_text = args[1]
 			referendum = db.get_referendum_db(chat_id, msg_id)
-		
+
 			if referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI):
 				db.add_button(chat_id, msg_id, button_text)
 
@@ -538,7 +538,7 @@ class MyBot:
 		friends = db.get_friends_db(chat_id, msg_id)
 
 		buttons_sorted = sort_buttons(buttons, votes, referendum['rfr_type'])
-		
+
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
 			flag_game_game2 = True
 			if db.is_regular_players_used_db(chat_id):
@@ -578,7 +578,7 @@ class MyBot:
 		if flag_game_game2:
 			if referendum['max_players']:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
-				
+
 				if(free_slots > 0):
 					plr_yes = button_1_votes + friends_players
 				else:
@@ -595,7 +595,7 @@ class MyBot:
 
 		for button in buttons_sorted:
 			button_id = button['button_id']
-		
+
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 
 			if button_votes_total:
@@ -651,23 +651,23 @@ class MyBot:
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
 		msg += f"👥👥👥👥\n"
-		msg += f"{unique_users_votes} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
+		msg += f"{unique_users_votes} из {chat_members - 1} \\({votes_percent_by_chat}%\\) человек проголосовало\n"
 
 		if flag_game_game2:
 			if flag_regular_used:
-				msg += f"*Total confirmed: {button_1_votes + friends_players} \\(reg \\- {regular_players}, oth \\- {other_players + friends_players}\\)*\n"
+				msg += f"*Кворум: {button_1_votes + friends_players} \\(пост \\- {regular_players}, раз \\- {other_players + friends_players}\\)*\n"
 			else:
-				msg += f"*Total confirmed: {button_1_votes + friends_players}*\n"
+				msg += f"*Кворум: {button_1_votes + friends_players}*\n"
 
 			if referendum['max_players']:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
 				next_player = get_next_player(votes, buttons, friends)
 
 				if(free_slots >= 0):
-					msg += f"*Free slots left: {free_slots}*\n"
+					msg += f"*Свободных мест: {free_slots}*\n"
 				else:
-					msg += f"*Extra people: {abs(free_slots)}*\n"
-					msg += f"*Next candidate: {escape_md(next_player)}*\n"
+					msg += f"*Игроков в очереди: {abs(free_slots)}*\n"
+					msg += f"*Следующий: {escape_md(next_player)}*\n"
 
 			if referendum['game_cost']:
 				if button_1_votes + friends_players > referendum['max_players'] > 0:
@@ -677,7 +677,7 @@ class MyBot:
 				else:
 					entry_fee = referendum['game_cost']
 
-				msg += f"*Entry fee: {entry_fee} ₽*\n"
+				msg += f"*Стоимость: {entry_fee} ₽*\n"
 
 		return msg
 
