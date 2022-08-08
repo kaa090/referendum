@@ -541,6 +541,10 @@ class MyBot:
 		
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
 			flag_game_game2 = True
+			if db.is_regular_players_used_db(chat_id):
+				flag_regular_used = True
+			else:
+				flag_regular_used = False
 		else:
 			flag_game_game2 = False
 
@@ -602,7 +606,7 @@ class MyBot:
 					msg += "Игроки от\\:\n"
 
 					for user_id in friends:
-						if db.is_regular_player(chat_id, user_id):
+						if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
 							sym = ''
 						else:
 							sym = '_'
@@ -621,7 +625,7 @@ class MyBot:
 				userlist = []
 				for usr in votes[button_id]['players']:
 					if flag_game_game2:
-						if db.is_regular_player(chat_id, usr['user_id']):
+						if flag_regular_used == False or db.is_regular_player(chat_id, usr['user_id']):
 							sym = ''
 						else:
 							sym = '_'
@@ -635,7 +639,7 @@ class MyBot:
 					userlist = []
 					for usr in votes[button_id]['queue']:
 						if flag_game_game2:
-							if db.is_regular_player(chat_id, usr['user_id']):
+							if flag_regular_used == False or db.is_regular_player(chat_id, usr['user_id']):
 								sym = ''
 							else:
 								sym = '_'
@@ -650,9 +654,7 @@ class MyBot:
 		msg += f"{unique_users_votes} of {chat_members - 1} \\({votes_percent_by_chat}%\\) people voted so far\n"
 
 		if flag_game_game2:
-			# msg += f"*Total confirmed: {button_1_votes + friends_players}*\n"
-
-			if db.is_regular_players_used_db(chat_id):
+			if flag_regular_used:
 				msg += f"*Total confirmed: {button_1_votes + friends_players} \\(reg \\- {regular_players}, oth \\- {other_players + friends_players}\\)*\n"
 			else:
 				msg += f"*Total confirmed: {button_1_votes + friends_players}*\n"
@@ -666,10 +668,6 @@ class MyBot:
 				else:
 					msg += f"*Extra people: {abs(free_slots)}*\n"
 					msg += f"*Next candidate: {escape_md(next_player)}*\n"
-
-			# if db.is_regular_players_used_db(chat_id):
-			# 	msg += f"\n*Regular players: {regular_players}*"
-			# 	msg += f"\n*Other players: {other_players}*"
 
 			if referendum['game_cost']:
 				if button_1_votes + friends_players > referendum['max_players'] > 0:
