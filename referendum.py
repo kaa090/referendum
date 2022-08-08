@@ -504,7 +504,6 @@ class MyBot:
 		keyboard_btns = []
 
 		for button_id in buttons:
-			button_id = button['button_id']
 			button_text = buttons[button_id]['button_text']
 			button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
 
