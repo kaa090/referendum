@@ -652,7 +652,7 @@ class MyBot:
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
 		msg += f"👥👥👥👥\n"
-		msg += f"{unique_users_votes} из {chat_members - 1} \\({votes_percent_by_chat}%\\) человек проголосовало\n"
+		msg += f"Голосов: {unique_users_votes} из {chat_members - 1} \\({votes_percent_by_chat}%\\)\n"
 
 		if flag_game_game2:
 			if flag_regular_used:
