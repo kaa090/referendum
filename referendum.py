@@ -601,20 +601,7 @@ class MyBot:
 			if button_votes_total:
 				votes_percent = int(100 * round(button_votes/button_votes_total, 2))
 
-			if flag_game_game2 and button_id == config.BUTTON_ID_ADD:
-				if friends_players:
-					msg += "Игроки от\\:\n"
-
-					for user_id in friends:
-						if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
-							sym = ''
-						else:
-							sym = '_'
-						msg += f"{sym}[{escape_md(friends[user_id]['user_name'])}](tg://user?id={user_id}){sym} \\- {friends[user_id]['friends']}\n"
-					msg += '\n'
-				else:
-					continue
-			elif flag_game_game2 and button_id == config.BUTTON_ID_DEL:
+			if flag_game_game2 and button_id in (config.BUTTON_ID_ADD, config.BUTTON_ID_DEL):
 				continue
 			else:
 				if referendum['rfr_type'] == config.RFR_GAME2 and button_id == config.BUTTON_ID_OPT:
@@ -647,6 +634,20 @@ class MyBot:
 
 					if userlist:
 						msg += f"\\[{', '.join(userlist)}\\]\n\n"
+
+				if flag_game_game2 and button_id == config.BUTTON_ID_YES:
+					if friends_players:
+						msg += "Игроки от\\:\n"
+
+						for user_id in friends:
+							if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
+								sym = ''
+							else:
+								sym = '_'
+							msg += f"{sym}[{escape_md(friends[user_id]['user_name'])}](tg://user?id={user_id}){sym} \\- {friends[user_id]['friends']}\n"
+						msg += '\n'
+					else:
+						continue
 
 		if(chat_members - 1):
 			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
