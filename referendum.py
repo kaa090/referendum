@@ -579,10 +579,10 @@ class MyBot:
 			if referendum['max_players']:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
 
-				if(free_slots > 0):
-					plr_yes = button_1_votes + friends_players
-				else:
-					plr_yes = referendum['max_players']
+				#if(free_slots > 0):
+				plr_yes = button_1_votes + friends_players
+				#else:
+					#plr_yes = referendum['max_players']
 				plr_max = referendum['max_players']
 			else:
 				plr_yes = button_1_votes + friends_players
