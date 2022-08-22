@@ -206,28 +206,33 @@ class MyBot:
 			rfr_cmd = args[1]
 			args = args[2:]
 
-			if rfr_cmd == config.RFR_GAME_CMD:
-				rfr_type = config.RFR_GAME
-			elif rfr_cmd == config.RFR_SINGLE_CMD:
-				rfr_type = config.RFR_SINGLE
-			elif rfr_cmd == config.RFR_MULTI_CMD:
-				rfr_type = config.RFR_MULTI
-			elif rfr_cmd == config.RFR_GAME2_CMD:
-				rfr_type = config.RFR_GAME2
+			msg_err = check_input(rfr_cmd, args)
+			
+			if msg_err == '':
+				if rfr_cmd == config.RFR_GAME_CMD:
+					rfr_type = config.RFR_GAME
+				elif rfr_cmd == config.RFR_SINGLE_CMD:
+					rfr_type = config.RFR_SINGLE
+				elif rfr_cmd == config.RFR_MULTI_CMD:
+					rfr_type = config.RFR_MULTI
+				elif rfr_cmd == config.RFR_GAME2_CMD:
+					rfr_type = config.RFR_GAME2
 
-			await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
-			db.create_referendum_db(chat_id = chat_id,
-									msg_id = msg_id,
-									user_id = message.from_user.id,
-									user_name = get_username(message.from_user),
-									rfr_type = rfr_type,
-									args = args)
+				await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
+				db.create_referendum_db(chat_id = chat_id,
+										msg_id = msg_id,
+										user_id = message.from_user.id,
+										user_name = get_username(message.from_user),
+										rfr_type = rfr_type,
+										args = args)
 
-			msg = await self.update_message(message.chat, msg_id)
-			keyboard = self.get_keyboard(chat_id, msg_id)
-			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+				msg = await self.update_message(message.chat, msg_id)
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
 
-			# db.set_referendum_status_db(chat_id, msg_id, 0)
+				# db.set_referendum_status_db(chat_id, msg_id, 0)
+			else:
+				await self.bot.send_message(user_id, msg_err)
 
 		else:
 			await self.bot.send_message(user_id, msg_err)
