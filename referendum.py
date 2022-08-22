@@ -1,12 +1,14 @@
 #!venv/bin/python
 
 import logging
-import referendum_db as db
+import datetime as dt
+import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.utils.markdown import escape_md
 from contextlib import suppress
+import referendum_db as db
 import config
 
 def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
@@ -82,6 +84,16 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 				return "this is not your referendum!"
 		else:
 			return "msg_id should be a number"
+
+	elif func == 'cron':
+		if args[0]:
+			try:
+				dt_format = '%Y-%m-%d %H:%M'
+				dt_timer = dt.datetime.strptime(args[0], dt_format)
+			except Exception as e:
+				return e
+		else:
+			return f"usage: /cron %Y-%m-%d %H:%M"
 
 	return ''
 
@@ -171,11 +183,30 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
+		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
 		executor.start_polling(self.dp, skip_updates = True)
+
+	async def cmd_cron(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
+		args = message.get_args().split("|")
+		msg_err = check_input('cron', args)
+
+		if msg_err == '':
+			await self.bot.send_message(user_id, f"job scheduled at {args[0]}")
+			await self.bot.send_message(chat_id, f"job scheduled at {args[0]}")
+			# /game 10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.send_message(user_id, "Hello!")
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_start(self, message: types.Message):
 		chat_id = message.chat.id
