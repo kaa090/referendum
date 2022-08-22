@@ -24,7 +24,7 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 	elif func == 'game2':
 		if len(args) != 9:
-			return "usage: /game game_cost|max_players|title|button_1_text|...|button_6_text"
+			return "usage: /game2 game_cost|max_players|title|button_1_text|...|button_6_text"
 
 		if args[0].isnumeric() == False:
 			return "game_cost should be a number"
@@ -86,14 +86,17 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 			return "msg_id should be a number"
 
 	elif func == 'cron':
-		if args[0]:
-			try:
-				dt_format = '%Y-%m-%d %H:%M'
-				dt_timer = dt.datetime.strptime(args[0], dt_format)
-			except Exception as e:
-				return e
-		else:
-			return f"usage: /cron %Y-%m-%d %H:%M"
+		if len(args) < 4:
+			return f"usage: /cron yyyy-mm-dd hh-mm|vote type|<params>"
+		
+		try:
+			dt_format = '%Y-%m-%d %H:%M'
+			dt_timer = dt.datetime.strptime(args[0], dt_format)
+		except Exception as e:
+			return e
+
+		if args[1] not in (config.RFR_GAME_CMD, config.RFR_SINGLE_CMD, config.RFR_MULTI_CMD, config.RFR_GAME2_CMD):
+			return f"vote type = {{{config.RFR_GAME_CMD}, {config.RFR_SINGLE_CMD}, {config.RFR_MULTI_CMD}, {config.RFR_GAME2_CMD}}}"
 
 	return ''
 
@@ -192,19 +195,43 @@ class MyBot:
 
 	async def cmd_cron(self, message: types.Message):
 		chat_id = message.chat.id
-		msg_id_del = message.message_id
+		msg_id = message.message_id
 		user_id = message.from_user.id
 
 		args = message.get_args().split("|")
 		msg_err = check_input('cron', args)
 
 		if msg_err == '':
-			await self.bot.send_message(user_id, f"/game scheduled at {args[0]}")
-			await self.bot.send_message(chat_id, f"/game 10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок")
+			date_time = args[0]
+			rfr_cmd = args[1]
+			args = args[2:]
+			
+			if rfr_cmd == config.RFR_GAME_CMD:
+				rfr_type = config.RFR_GAME
+			elif rfr_cmd == config.RFR_SINGLE_CMD:
+				rfr_type = config.RFR_SINGLE
+			elif rfr_cmd == config.RFR_MULTI_CMD:
+				rfr_type = config.RFR_MULTI
+			elif rfr_cmd == config.RFR_GAME2_CMD:
+				rfr_type = config.RFR_GAME2
+
+			await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
+			await self.bot.send_message(chat_id, f"/game 2022-08-22 17:30|game|10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок")
+			db.create_referendum_db(chat_id = chat_id,
+									msg_id = msg_id,
+									user_id = message.from_user.id,
+									user_name = get_username(message.from_user),
+									rfr_type = rfr_type,
+									args = args)
+
+			msg = await self.update_message(message.chat, msg_id)
+			keyboard = self.get_keyboard(chat_id, msg_id)
+			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
 		else:
 			await self.bot.send_message(user_id, msg_err)
 
-		await self.bot.delete_message(chat_id, msg_id_del)
+		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_start(self, message: types.Message):
 		chat_id = message.chat.id
