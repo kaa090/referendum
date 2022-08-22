@@ -199,13 +199,11 @@ class MyBot:
 		msg_err = check_input('cron', args)
 
 		if msg_err == '':
-			await self.bot.send_message(user_id, f"job scheduled at {args[0]}")
-			await self.bot.send_message(chat_id, f"job scheduled at {args[0]}")
-			# /game 10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок
+			await self.bot.send_message(user_id, f"/game scheduled at {args[0]}")
+			await self.bot.send_message(chat_id, f"/game 10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок")
 		else:
 			await self.bot.send_message(user_id, msg_err)
 
-		await self.bot.send_message(user_id, "Hello!")
 		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_start(self, message: types.Message):
