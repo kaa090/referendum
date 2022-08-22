@@ -11,8 +11,8 @@ from contextlib import suppress
 import referendum_db as db
 import config
 
-def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
-	if func == 'game':
+def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
+	if cmd == config.RFR_GAME_CMD:
 		if len(args) != 8:
 			return "usage: /game game_cost|max_players|title|button_1_text|...|button_5_text"
 
@@ -22,7 +22,7 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
 
-	elif func == 'game2':
+	elif cmd == config.RFR_GAME2_CMD:
 		if len(args) != 9:
 			return "usage: /game2 game_cost|max_players|title|button_1_text|...|button_6_text"
 
@@ -32,7 +32,7 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
 
-	elif func == 'update':
+	elif cmd == 'update':
 		if len(args) < 2:
 			return "usage: /update msg_id|game_cost|max_players|title|button_1_text|...|button_N_text"
 
@@ -49,8 +49,8 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if len(args) >= 3 and args[2].isnumeric() == False:
 			return "max_players should be a number"
 
-	elif func in ('open', 'close', 'log'):
-		if args and args.isnumeric() == False or args == '' and msg_id == 0 or args == '' and func == 'open':
+	elif cmd in ('open', 'close', 'log'):
+		if args and args.isnumeric() == False or args == '' and msg_id == 0 or args == '' and cmd == 'open':
 			return "msg_id should be a number"
 
 		if args:
@@ -61,18 +61,18 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if db.check_user_id(chat_id, msg_id, user_id) == False:
 			return "this is not your referendum!"
 
-	elif func in ('get', 'get_reg'):
+	elif cmd in ('get', 'get_reg'):
 		if args and args.isnumeric() == False:
 			return "1 - for active, 0 - for closed, nothing - for all"
 
-	elif func == 'set_reg':
+	elif cmd == 'set_reg':
 		if len(args) not in (2, 3):
 			return "usage: /set_reg user_id|player_type"
 
 		if args[0].isnumeric() == False or args[1].isnumeric() == False:
 			return "user_id and player_type should be a number"
 
-	elif func == 'add_btn':
+	elif cmd == 'add_btn':
 		if len(args) != 2:
 			return "usage: /add_btn msg_id|button_text"
 
@@ -85,7 +85,7 @@ def check_input(func, args, chat_id = 0, msg_id = 0, user_id = 0):
 		else:
 			return "msg_id should be a number"
 
-	elif func == 'cron':
+	elif cmd == 'cron':
 		if len(args) < 4:
 			return f"usage: /cron yyyy-mm-dd hh-mm|vote type|<params>"
 		
@@ -205,7 +205,7 @@ class MyBot:
 			date_time = args[0]
 			rfr_cmd = args[1]
 			args = args[2:]
-			
+
 			if rfr_cmd == config.RFR_GAME_CMD:
 				rfr_type = config.RFR_GAME
 			elif rfr_cmd == config.RFR_SINGLE_CMD:
@@ -216,7 +216,6 @@ class MyBot:
 				rfr_type = config.RFR_GAME2
 
 			await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
-			await self.bot.send_message(chat_id, f"/game 2022-08-22 17:30|game|10000|10|Хоккей|✅Буду|❌Не буду|❓Пока не знаю|➕Игрок|➖Игрок")
 			db.create_referendum_db(chat_id = chat_id,
 									msg_id = msg_id,
 									user_id = message.from_user.id,
@@ -227,6 +226,8 @@ class MyBot:
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+			# db.set_referendum_status_db(chat_id, msg_id, 0)
 
 		else:
 			await self.bot.send_message(user_id, msg_err)
@@ -324,9 +325,9 @@ class MyBot:
 			args = [game_cost] + [max_players] + args
 
 		if rfr_type == config.RFR_GAME:
-			check_type = 'game'
+			check_type = config.RFR_GAME_CMD
 		elif rfr_type == config.RFR_GAME2:
-			check_type = 'game2'
+			check_type = config.RFR_GAME2_CMD
 		else:
 			check_type = ''
 
