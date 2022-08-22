@@ -9,9 +9,13 @@ FILE_HELP = "help.txt"
 LEVEL = logging.INFO	#restart if changed. LEVEL = [DEBUG, INFO, WARNING, ERROR, CRITICAL]
 
 RFR_GAME = 0
+RFR_GAME_CMD = 'game'
 RFR_SINGLE = 1
+RFR_SINGLE_CMD = 'single'
 RFR_MULTI = 2
+RFR_MULTI_CMD = 'multi'
 RFR_GAME2 = 3
+RFR_GAME2_CMD = 'game2'
 
 BUTTON_ID_YES = 1
 BUTTON_ID_ADD = 4
