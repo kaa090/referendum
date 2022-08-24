@@ -6,7 +6,7 @@ FILE_LOG = "referendums.log"
 FILE_DB = "referendums.db"
 FILE_README = "readme.txt"
 FILE_HELP = "help.txt"
-LEVEL = logging.INFO	# restart if changed. LEVEL = [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+LEVEL = logging.INFO	#restart if changed. LEVEL = [DEBUG, INFO, WARNING, ERROR, CRITICAL]
 
 RFR_GAME = 0
 RFR_GAME_CMD = 'game'
