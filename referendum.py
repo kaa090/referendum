@@ -117,7 +117,7 @@ def get_next_player(votes, buttons, friends):
 			next_player = f"{votes[button_id]['queue'][0]['user_name']}"
 		else:
 			for usr_id in friends:
-				next_player = f"игрок от {friends[usr_id]['user_name']}"
+				next_player = f"участник от {friends[usr_id]['user_name']}"
 				break
 
 	return next_player
@@ -288,7 +288,7 @@ class MyBot:
 		msg = []
 		status = -1
 
-		msg_err = check_input(cmd = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(func = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
 			if args:
@@ -369,7 +369,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg_err = check_input(cmd = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
 			msg_id = int(args[0])
@@ -445,7 +445,7 @@ class MyBot:
 		msg = []
 		player_type = -1
 
-		msg_err = check_input(cmd = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(func = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
 			if args:
@@ -473,7 +473,7 @@ class MyBot:
 
 		user_name = ''
 
-		msg_err = check_input(cmd = 'set_reg', args = args)
+		msg_err = check_input(func = 'set_reg', args = args)
 
 		if msg_err == '':
 			user_id = args[0]
@@ -501,7 +501,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg_err = check_input(cmd = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg_err = check_input(func = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
 			msg_id = int(args[0])
@@ -638,16 +638,12 @@ class MyBot:
 						other_players +=1
 
 		if flag_game_game2:
+			plr_yes = button_1_votes + friends_players
+
 			if referendum['max_players']:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
-
-				#if(free_slots > 0):
-				plr_yes = button_1_votes + friends_players
-				#else:
-					#plr_yes = referendum['max_players']
 				plr_max = referendum['max_players']
 			else:
-				plr_yes = button_1_votes + friends_players
 				plr_max = chat_members - 1
 		else:
 			plr_yes = unique_users_votes
@@ -699,7 +695,7 @@ class MyBot:
 
 				if flag_game_game2 and button_id == config.BUTTON_ID_YES:
 					if friends_players:
-						msg += "Игроки от\\:\n"
+						msg += "Участники от\\:\n"
 
 						for user_id in friends:
 							if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
@@ -729,7 +725,7 @@ class MyBot:
 				if(free_slots >= 0):
 					msg += f"*Свободных мест: {free_slots}*\n"
 				else:
-					msg += f"*Игроков в очереди: {abs(free_slots)}*\n"
+					msg += f"*Очередь: {abs(free_slots)}*\n"
 					msg += f"*Следующий: {escape_md(next_player)}*\n"
 
 			if referendum['game_cost']:
