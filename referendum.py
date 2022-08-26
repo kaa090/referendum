@@ -288,7 +288,7 @@ class MyBot:
 		msg = []
 		status = -1
 
-		msg_err = check_input(func = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(cmd = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
 			if args:
@@ -369,7 +369,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg_err = check_input(func = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg_err = check_input(cmd = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
 			msg_id = int(args[0])
@@ -445,7 +445,7 @@ class MyBot:
 		msg = []
 		player_type = -1
 
-		msg_err = check_input(func = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(cmd = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
 			if args:
@@ -473,7 +473,7 @@ class MyBot:
 
 		user_name = ''
 
-		msg_err = check_input(func = 'set_reg', args = args)
+		msg_err = check_input(cmd = 'set_reg', args = args)
 
 		if msg_err == '':
 			user_id = args[0]
@@ -501,7 +501,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg_err = check_input(func = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg_err = check_input(cmd = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
 			msg_id = int(args[0])
