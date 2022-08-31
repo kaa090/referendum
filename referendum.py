@@ -305,6 +305,7 @@ class MyBot:
 				msg = '\n'.join(msg)
 			else:
 				msg = f"There're no referendums in \"{message.chat.title}\""
+
 			await self.bot.send_message(user_id, msg)
 		else:
 			await self.bot.send_message(user_id, msg_err)
@@ -352,7 +353,7 @@ class MyBot:
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
 
 			try:
-				await self.bot.pin_chat_message(chat_id, msg_id + 1, disable_notification = True)
+				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 			except:
 				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 				await self.bot.send_message(message.from_user.id, msg_err)
@@ -425,7 +426,7 @@ class MyBot:
 
 			if status:
 				try:
-					await self.bot.pin_chat_message(chat_id, msg_id + 1, disable_notification = True)
+					await self.bot.pin_chat_message(chat_id, msg_id + 1)
 				except:
 					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 					logging.error(msg_err)
