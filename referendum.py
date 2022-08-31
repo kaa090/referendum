@@ -88,7 +88,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	elif cmd == 'cron':
 		if len(args) < 4:
 			return f"usage: /cron yyyy-mm-dd hh-mm|vote type|<params>"
-		
+
 		try:
 			dt_format = '%Y-%m-%d %H:%M'
 			dt_timer = dt.datetime.strptime(args[0], dt_format)
@@ -197,6 +197,7 @@ class MyBot:
 		chat_id = message.chat.id
 		msg_id = message.message_id
 		user_id = message.from_user.id
+		rfr_type = 0
 
 		args = message.get_args().split("|")
 		msg_err = check_input('cron', args)
@@ -207,7 +208,7 @@ class MyBot:
 			args = args[2:]
 
 			msg_err = check_input(rfr_cmd, args)
-			
+
 			if msg_err == '':
 				if rfr_cmd == config.RFR_GAME_CMD:
 					rfr_type = config.RFR_GAME
@@ -441,6 +442,7 @@ class MyBot:
 	async def cmd_get_regular_players(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		user_id = message.from_user.id
 		args = message.get_args()
 		msg = []
 		player_type = -1
@@ -593,6 +595,7 @@ class MyBot:
 		friends_players = 0
 		entry_fee = 0
 		sym = ''
+		flag_regular_used = False
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		buttons = db.get_buttons_db(chat_id, msg_id)
@@ -605,8 +608,7 @@ class MyBot:
 			flag_game_game2 = True
 			if db.is_regular_players_used_db(chat_id):
 				flag_regular_used = True
-			else:
-				flag_regular_used = False
+
 		else:
 			flag_game_game2 = False
 
@@ -641,7 +643,6 @@ class MyBot:
 			plr_yes = button_1_votes + friends_players
 
 			if referendum['max_players']:
-				free_slots = referendum['max_players'] - button_1_votes - friends_players
 				plr_max = referendum['max_players']
 			else:
 				plr_max = chat_members - 1
@@ -707,9 +708,9 @@ class MyBot:
 					else:
 						continue
 
-		if(chat_members - 1):
+		if chat_members - 1:
 			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
-			
+
 			msg += f"👥👥👥👥\n"
 			msg += f"*Голосов: {unique_users_votes} из {chat_members - 1} \\({votes_percent_by_chat}%\\)*\n"
 
@@ -723,7 +724,7 @@ class MyBot:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
 				next_player = get_next_player(votes, buttons, friends)
 
-				if(free_slots >= 0):
+				if free_slots >= 0:
 					msg += f"*Свободных мест: {free_slots}*\n"
 				else:
 					msg += f"*Очередь: {abs(free_slots)}*\n"
