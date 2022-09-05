@@ -274,7 +274,7 @@ class MyBot:
 
 			if not msg:
 				msg = 'no logs'
-			await self.bot.send_message(user_id, msg)
+			await self.bot.send_message(user_id, msg[-4096:])
 
 		if msg_err:
 			await self.bot.send_message(user_id, msg_err)
@@ -306,7 +306,7 @@ class MyBot:
 			else:
 				msg = f"There're no referendums in \"{message.chat.title}\""
 
-			await self.bot.send_message(user_id, msg)
+			await self.bot.send_message(user_id, msg[-4096:])
 		else:
 			await self.bot.send_message(user_id, msg_err)
 
