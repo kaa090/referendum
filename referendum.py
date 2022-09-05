@@ -8,8 +8,14 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.utils.markdown import escape_md
 from contextlib import suppress
+import pymorphy2
 import referendum_db as db
 import config
+
+def get_morph(my_word):
+	morph = pymorphy2.MorphAnalyzer()
+
+	return morph.parse(my_word)[0].inflect({'plur'}).word
 
 def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	if cmd == config.RFR_GAME_CMD:
@@ -697,7 +703,7 @@ class MyBot:
 
 				if flag_game_game2 and button_id == config.BUTTON_ID_YES:
 					if friends_players:
-						msg += "Участники от\\:\n"
+						msg += f"{get_morph(buttons[BUTTON_ID_ADD]['button_text'])} от\\:\n"
 
 						for user_id in friends:
 							if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
