@@ -11,6 +11,7 @@ from contextlib import suppress
 import pymorphy2
 import referendum_db as db
 import config
+import bot_token
 
 def get_morph(my_word):
 	morph = pymorphy2.MorphAnalyzer()
@@ -174,7 +175,7 @@ class MyBot:
 
 		db.create_tables()
 
-		self.bot = Bot(token = config.TOKEN)
+		self.bot = Bot(token = bot_token.TOKEN)
 		self.dp = Dispatcher(self.bot)
 
 		self.dp.register_message_handler(self.cmd_start, commands = "start")
