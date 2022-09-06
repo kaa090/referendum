@@ -1,7 +1,5 @@
 import logging
 
-TOKEN = "5322293349:AAHjYqXIE8DHsb3tvinBDRgvdPXyTt838Rs" # БОТЯРА
-# TOKEN = "5355907600:AAF0pGLWh1YbVBEyJS5uXjVPxLZuQ0YvrBk" # Т-1000
 FILE_LOG = "referendums.log"
 FILE_DB = "referendums.db"
 FILE_README = "readme.txt"
