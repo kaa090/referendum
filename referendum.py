@@ -12,7 +12,7 @@ import pymorphy2
 import referendum_db as db
 import config
 import bot_token
-#test
+
 def get_morph(my_word):
 	morph = pymorphy2.MorphAnalyzer()
 
