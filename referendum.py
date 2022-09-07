@@ -708,7 +708,14 @@ class MyBot:
 
 				if flag_game_game2 and button_id == config.BUTTON_ID_YES:
 					if friends_players:
-						msg += f"{get_morph(buttons[config.BUTTON_ID_ADD]['button_text'])} от\\:\n"
+						bttn4_text = buttons[config.BUTTON_ID_ADD]['button_text']
+						plur = get_morph(bttn4_text)
+						
+						if plur == bttn4_text:
+							msg += f"{bttn4_text}\\:\n"
+						else:
+							msg += f"{plur} от\\:\n"
+						
 
 						for user_id in friends:
 							if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
