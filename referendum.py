@@ -16,7 +16,11 @@ import bot_token
 def get_morph(my_word):
 	morph = pymorphy2.MorphAnalyzer()
 
-	return morph.parse(my_word)[0].inflect({'plur'}).word
+	plur = morph.parse(my_word)[0].inflect({'plur'})
+	if plur:
+		return plur.word
+	else:
+		return my_word
 
 def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	if cmd == config.RFR_GAME_CMD:
