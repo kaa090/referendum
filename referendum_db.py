@@ -805,7 +805,7 @@ def get_silent_members_db(chat_id, msg_id):
 
 	sql = '''
 		SELECT user_id, user_name
-			from rfr_buttons
+			from rfr_log
 			where
 				chat_id = {} and
 				msg_id = {}
