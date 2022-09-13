@@ -6,8 +6,9 @@
 /close msg_id*
 /open msg_id
 /update msg_id|game_cost|max_players|заголовок|кнопка_1|...|кнопка_N
-/add_btn msg_id|кнопка_N
+/add_btn msg_id|кнопка
 /log msg_id*
 /get_reg
 /set_reg user_id|player_type
+/get_silent msg_id*
 * — необязательный параметр, при наличии только одного своего открытого опроса в группе
