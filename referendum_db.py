@@ -16,8 +16,8 @@ def create_tables():
 
 	cur.execute('''
 		CREATE table if not exists referendums(
-			chat_id integer, 
-			msg_id integer, 
+			chat_id integer,
+			msg_id integer,
 			title text,
 			rfr_type integer,
 			status integer,
@@ -31,7 +31,7 @@ def create_tables():
 
 	cur.execute('''
 		CREATE table if not exists rfr_buttons(
-			chat_id integer, 
+			chat_id integer,
 			msg_id integer,
 			button_id integer,
 			button_text text,
@@ -40,11 +40,11 @@ def create_tables():
 
 	cur.execute('''
 		CREATE table if not exists rfr_log(
-			chat_id integer, 
-			msg_id integer, 
-			button_id integer, 
+			chat_id integer,
+			msg_id integer,
+			button_id integer,
 			user_id integer,
-			user_name text, 
+			user_name text,
 			datum text,
 			button_status integer,
 			primary key(chat_id, msg_id, button_id, user_id, user_name, datum))
@@ -52,11 +52,21 @@ def create_tables():
 
 	cur.execute('''
 		CREATE table if not exists regular_players(
-			chat_id integer, 
+			chat_id integer,
 			user_id integer,
-			user_name text, 
+			user_name text,
 			player_type integer,
 			primary key(chat_id, user_id))
+	''')
+
+	cur.execute('''
+		CREATE table if not exists timers(
+			chat_id integer,
+			msg_id integer,
+			datum text,
+			period integer,
+			status integer,
+			primary key(chat_id, msg_id))
 	''')
 
 	con.commit()
@@ -81,7 +91,7 @@ def create_referendum_db(chat_id, msg_id, user_id, user_name, rfr_type, args):
 	buttons = args[3:]
 
 	sql = '''
-		INSERT into referendums(chat_id, msg_id, title, rfr_type, status, game_cost, max_players, user_id, user_name, datum) 
+		INSERT into referendums(chat_id, msg_id, title, rfr_type, status, game_cost, max_players, user_id, user_name, datum)
 			values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	'''
 	row = [(chat_id, msg_id, title, rfr_type, 1, game_cost, max_players, user_id, user_name, datetime.datetime.now())]
@@ -105,17 +115,17 @@ def get_referendums_by_user_id_db(chat_id, user_id, status = -1):
 
 	if status == -1:
 		sql = '''
-			SELECT * 
+			SELECT *
 				from referendums
-				where 
+				where
 					referendums.chat_id = {} and
 					referendums.user_id = {}
 		'''.format(chat_id, user_id)
 	else:
 		sql = '''
-			SELECT * 
+			SELECT *
 				from referendums
-				where 
+				where
 					referendums.chat_id = {} and
 					referendums.status = {} and
 					referendums.user_id = {}
@@ -149,9 +159,9 @@ def get_referendum_db(chat_id, msg_id):
 	cur = con.cursor()
 
 	sql = '''
-		SELECT * 
+		SELECT *
 			from referendums
-			where 
+			where
 				referendums.chat_id = {} and
 				referendums.msg_id = {}
 	'''.format(chat_id, msg_id)
@@ -171,20 +181,20 @@ def get_referendum_db(chat_id, msg_id):
 
 def update_referendum_db(chat_id, args):
 	msg_id = int(args[0])
-	
+
 	if len(args) >= 2:
 		game_cost = int(args[1])
 
 		sql = '''
 			UPDATE referendums
 				set game_cost = ?
-				where 
+				where
 					chat_id = ? and
 					msg_id = ?
 		'''
 		row = [(game_cost, chat_id, msg_id)]
 		exec_sql(sql, row)
-	
+
 	if len(args) >= 3:
 		max_players = int(args[2])
 
@@ -204,7 +214,7 @@ def update_referendum_db(chat_id, args):
 		sql = '''
 			UPDATE referendums
 				set title = ?
-				where 
+				where
 					chat_id = ? and
 					msg_id = ?
 		'''
@@ -233,7 +243,7 @@ def set_referendum_status_db(chat_id, msg_id, status):
 	sql = '''
 		UPDATE referendums
 			SET status = ?
-			WHERE 
+			WHERE
 				chat_id = ? and
 				msg_id = ?
 	'''
@@ -250,7 +260,7 @@ def get_last_button_add(chat_id, msg_id, user_id, button_id):
 	sql = '''
 		SELECT user_id, user_name, button_status, max(datum) as datum
 			from rfr_log
-			where 
+			where
 				chat_id = {} and
 				msg_id = {} and
 				button_id = {} and
@@ -304,7 +314,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 					sql = '''
 						UPDATE rfr_log
 							SET button_status = ?
-							WHERE 
+							WHERE
 								chat_id = ? and
 								msg_id = ? and
 								button_id = ? and
@@ -426,16 +436,16 @@ def get_votes_db(chat_id, msg_id):
 
 	sql = '''
 		SELECT rfr_buttons.button_id, user_id, user_name, max(datum) as datum, button_status
-			from rfr_buttons 
+			from rfr_buttons
 			left outer join rfr_log
-			on 
+			on
 				rfr_buttons.chat_id = rfr_log.chat_id and
 				rfr_buttons.msg_id = rfr_log.msg_id and
 				rfr_buttons.button_id = rfr_log.button_id
-			where 
+			where
 				rfr_buttons.chat_id = {} and
 				rfr_buttons.msg_id = {}
-			group by 
+			group by
 				rfr_buttons.button_id, user_id, user_name
 			order by
 				rfr_buttons.button_id, datum
@@ -462,7 +472,7 @@ def get_buttons_db(chat_id, msg_id):
 	sql = '''
 		SELECT button_id, button_text
 			from rfr_buttons
-			where 
+			where
 				chat_id = {} and
 				msg_id = {}
 	'''.format(chat_id, msg_id)
@@ -494,8 +504,8 @@ def extend_table():
 	cur.execute('ALTER table referendums rename to _referendums_old')
 	cur.execute('''
 		CREATE table referendums(
-			chat_id integer, 
-			msg_id integer, 
+			chat_id integer,
+			msg_id integer,
 			title text,
 			rfr_type integer default 0,
 			status integer,
@@ -525,8 +535,8 @@ def drop_table_column():
 	cur.execute('ALTER table rfr_buttons rename to _rfr_buttons_old')
 	cur.execute('''
 		CREATE table rfr_buttons(
-			chat_id integer, 
-			msg_id integer, 
+			chat_id integer,
+			msg_id integer,
 			button_id integer,
 			button_text text,
 			primary key(chat_id, msg_id, button_id))
@@ -665,9 +675,9 @@ def is_regular_players_used_db(chat_id):
 	cur = con.cursor()
 
 	sql = '''
-		SELECT * 
+		SELECT *
 			from regular_players
-			where 
+			where
 				chat_id = {} and
 				player_type = 1
 	'''.format(chat_id)
@@ -687,9 +697,9 @@ def get_regular_player_db(chat_id, user_id):
 	cur = con.cursor()
 
 	sql = '''
-		SELECT * 
+		SELECT *
 			from regular_players
-			where 
+			where
 				chat_id = {} and
 				user_id = {}
 	'''.format(chat_id, user_id)
@@ -732,7 +742,7 @@ def get_friends_db(chat_id, msg_id):
 	sql = '''
 		SELECT user_id, user_name, sum(button_status) as friends, min(datum) as datum
 			from rfr_log
-			where 
+			where
 				chat_id = {} and
 				msg_id = {} and
 				button_id = 4 and
@@ -757,11 +767,11 @@ def add_button(chat_id, msg_id, button_text):
 	sql = '''
 		SELECT max(button_id) as button_id
 			from rfr_buttons
-			where 
+			where
 				chat_id = {} and
 				msg_id = {}
 	'''.format(chat_id, msg_id)
-	
+
 	row = cur.execute(sql).fetchone()
 	con.close()
 
@@ -774,3 +784,40 @@ def add_button(chat_id, msg_id, button_text):
 		'''
 		row = [(chat_id, msg_id, button_id, button_text)]
 		exec_sql(sql, row)
+
+def get_silent_members_db(chat_id, msg_id):
+	chat_members = []
+	active_members = []
+	silent_members = []
+
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''
+		SELECT user_id, user_name
+			from regular_players
+			where chat_id = {}
+	'''.format(chat_id)
+	rows = cur.execute(sql).fetchall()
+	for row in rows:
+		chat_members.append({'user_id': row['user_id'], 'user_name': row['user_name']})
+
+	sql = '''
+		SELECT user_id, user_name
+			from rfr_buttons
+			where
+				chat_id = {} and
+				msg_id = {}
+			group by
+				user_id, user_name
+	'''.format(chat_id, msg_id)
+	rows = cur.execute(sql).fetchall()
+	con.close()
+
+	for row in rows:
+		active_members.append({'user_id': row['user_id'], 'user_name': row['user_name']})
+
+	silent_members = [p for p in chat_members if p not in active_members]
+
+	return silent_members
