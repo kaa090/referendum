@@ -213,22 +213,11 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
-		self.dp.register_message_handler(self.cmd_kill_pin, commands = "kill_pin")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
 		executor.start_polling(self.dp, skip_updates = True)
-
-	async def cmd_kill_pin(self, message: types.Message):
-		chat_id = message.chat.id
-		msg_id_del = message.message_id
-		user_id = message.from_user.id
-
-		msg_id = is_one_referendum_active(chat_id, user_id)
-
-		await self.bot.delete_message(chat_id, msg_id + 2)
-		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_start(self, message: types.Message):
 		chat_id = message.chat.id
@@ -290,6 +279,7 @@ class MyBot:
 
 			try:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
+				await self.bot.delete_message(chat_id, msg_id + 2)
 			except:
 				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 				await self.bot.send_message(message.from_user.id, msg_err)
@@ -371,7 +361,7 @@ class MyBot:
 			if status:
 				try:
 					await self.bot.pin_chat_message(chat_id, msg_id + 1)
-					await self.bot.delete_message(chat_id, msg_id_del + 1)
+					await self.bot.delete_message(chat_id, msg_id + 2)
 				except:
 					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 					logging.error(msg_err)
