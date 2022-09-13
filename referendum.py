@@ -361,7 +361,7 @@ class MyBot:
 			if status:
 				try:
 					await self.bot.pin_chat_message(chat_id, msg_id + 1)
-					await self.bot.delete_message(chat_id, msg_id + 2)
+					await self.bot.delete_message(chat_id, msg_id_del + 1)
 				except:
 					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 					logging.error(msg_err)
