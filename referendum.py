@@ -198,80 +198,44 @@ class MyBot:
 
 		self.dp.register_message_handler(self.cmd_start, commands = "start")
 		self.dp.register_message_handler(self.cmd_help, commands = "help")
-		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_game, commands = "game")
 		self.dp.register_message_handler(self.cmd_single, commands = "single")
 		self.dp.register_message_handler(self.cmd_multi, commands = "multi")
 		self.dp.register_message_handler(self.cmd_game2, commands = "game2")
-		self.dp.register_message_handler(self.cmd_open, commands = "open")
+		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_close, commands = "close")
+		self.dp.register_message_handler(self.cmd_open, commands = "open")
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
-		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
-		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
-		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
-		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
+		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
+		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
+		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
+		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
+		self.dp.register_message_handler(self.cmd_kill_pin, commands = "kill_pin")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
 
 		executor.start_polling(self.dp, skip_updates = True)
 
-	async def cmd_cron(self, message: types.Message):
+	async def kill_pin(self, message: types.Message):
 		chat_id = message.chat.id
-		msg_id = message.message_id
+		msg_id_del = message.message_id
 		user_id = message.from_user.id
-		rfr_type = 0
 
-		args = message.get_args().split("|")
-		msg_err = check_input('cron', args)
+		msg_id = is_one_referendum_active(chat_id, user_id)
 
-		if msg_err == '':
-			date_time = args[0]
-			rfr_cmd = args[1]
-			args = args[2:]
-
-			msg_err = check_input(rfr_cmd, args)
-
-			if msg_err == '':
-				if rfr_cmd == config.RFR_GAME_CMD:
-					rfr_type = config.RFR_GAME
-				elif rfr_cmd == config.RFR_SINGLE_CMD:
-					rfr_type = config.RFR_SINGLE
-				elif rfr_cmd == config.RFR_MULTI_CMD:
-					rfr_type = config.RFR_MULTI
-				elif rfr_cmd == config.RFR_GAME2_CMD:
-					rfr_type = config.RFR_GAME2
-
-				await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
-				db.create_referendum_db(chat_id = chat_id,
-										msg_id = msg_id,
-										user_id = message.from_user.id,
-										user_name = get_username(message.from_user),
-										rfr_type = rfr_type,
-										args = args)
-
-				msg = await self.update_message(message.chat, msg_id)
-				keyboard = self.get_keyboard(chat_id, msg_id)
-				await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
-
-				# db.set_referendum_status_db(chat_id, msg_id, 0)
-			else:
-				await self.bot.send_message(user_id, msg_err)
-
-		else:
-			await self.bot.send_message(user_id, msg_err)
-
-		await self.bot.delete_message(chat_id, msg_id)
+		await self.bot.delete_message(chat_id, msg_id + 1)
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_start(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
 
-		await self.bot.send_message(user_id, "Hello!")
+		await self.bot.send_message(user_id, f"Hello! Your Telegram ID is {user_id}")
 		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_help(self, message: types.Message):
@@ -283,60 +247,6 @@ class MyBot:
 
 		await self.bot.send_message(user_id, msg)
 		await self.bot.delete_message(chat_id, msg_id_del)
-
-	async def cmd_log(self, message: types.Message):
-		chat_id = message.chat.id
-		msg_id_del = message.message_id
-		user_id = message.from_user.id
-
-		args = message.get_args()
-		msg_id = is_one_referendum_active(chat_id, user_id)
-		msg_err = check_input('log', args, chat_id, msg_id, user_id)
-
-		if msg_err == '':
-			if args:
-				msg_id = int(args)
-			msg = read_file(config.FILE_LOG, chat_id, msg_id)
-
-			if not msg:
-				msg = 'no logs'
-			await self.bot.send_message(user_id, msg[-4096:])
-
-		if msg_err:
-			await self.bot.send_message(user_id, msg_err)
-
-		await self.bot.delete_message(chat_id, msg_id_del)
-
-	async def cmd_get(self, message: types.Message):
-		chat_id = message.chat.id
-		msg_id = message.message_id
-		user_id = message.from_user.id
-		args = message.get_args()
-		msg = []
-		status = -1
-
-		msg_err = check_input(cmd = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
-
-		if msg_err == '':
-			if args:
-				status = int(args)
-
-			referendums = db.get_referendums_by_user_id_db(chat_id, user_id, status)
-
-			for r in referendums:
-				msg.append(f"""{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}
-					""")
-
-			if msg:
-				msg = '\n'.join(msg)
-			else:
-				msg = f"There're no referendums in \"{message.chat.title}\""
-
-			await self.bot.send_message(user_id, msg[-4096:])
-		else:
-			await self.bot.send_message(user_id, msg_err)
-
-		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_game(self, message: types.Message):
 		await self.cmd_create(message, rfr_type = config.RFR_GAME)
@@ -391,34 +301,42 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
-	async def cmd_update(self, message: types.Message):
+	async def cmd_get(self, message: types.Message):
 		chat_id = message.chat.id
-		msg_id_del = message.message_id
+		msg_id = message.message_id
 		user_id = message.from_user.id
-		args = message.get_args().split("|")
+		args = message.get_args()
+		msg = []
+		status = -1
 
-		msg_err = check_input(cmd = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg_err = check_input(cmd = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
-			msg_id = int(args[0])
+			if args:
+				status = int(args)
 
-			db.update_referendum_db(chat_id = chat_id, args = args)
+			referendums = db.get_referendums_by_user_id_db(chat_id, user_id, status)
 
-			msg = await self.update_message(message.chat, msg_id)
-			keyboard = self.get_keyboard(chat_id, msg_id)
-			await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+			for r in referendums:
+				msg.append(f"""{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}
+					""")
 
-			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote edited by {get_username(message.from_user)}")
+			if msg:
+				msg = '\n'.join(msg)
+			else:
+				msg = f"There're no referendums in \"{message.chat.title}\""
+
+			await self.bot.send_message(user_id, msg[-4096:])
 		else:
 			await self.bot.send_message(user_id, msg_err)
 
-		await self.bot.delete_message(chat_id, msg_id_del)
-
-	async def cmd_open(self, message: types.Message):
-		await self.cmd_open_close(message = message, status = 1)
+		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_close(self, message: types.Message):
 		await self.cmd_open_close(message = message, status = 0)
+
+	async def cmd_open(self, message: types.Message):
+		await self.cmd_open_close(message = message, status = 1)
 
 	async def cmd_open_close(self, message: types.Message, status):
 		chat_id = message.chat.id
@@ -453,6 +371,7 @@ class MyBot:
 			if status:
 				try:
 					await self.bot.pin_chat_message(chat_id, msg_id + 1)
+					await self.bot.delete_message(chat_id, msg_id_del + 1)
 				except:
 					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
 					logging.error(msg_err)
@@ -465,6 +384,127 @@ class MyBot:
 			await self.bot.send_message(message.from_user.id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_update(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg_err = check_input(cmd = 'update', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+
+		if msg_err == '':
+			msg_id = int(args[0])
+
+			db.update_referendum_db(chat_id = chat_id, args = args)
+
+			msg = await self.update_message(message.chat, msg_id)
+			keyboard = self.get_keyboard(chat_id, msg_id)
+			await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote edited by {get_username(message.from_user)}")
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_add_btn(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg_err = check_input(cmd = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+
+		if msg_err == '':
+			msg_id = int(args[0])
+			button_text = args[1]
+			referendum = db.get_referendum_db(chat_id, msg_id)
+
+			if referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI):
+				db.add_button(chat_id, msg_id, button_text)
+
+				msg = await self.update_message(message.chat, msg_id)
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} added button {button_text}")
+			else:
+				await self.bot.send_message(message.from_user.id, f"Unable to add button. Type of referendum is GAME")
+		else:
+			await self.bot.send_message(message.from_user.id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_log(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+
+		args = message.get_args()
+		msg_id = is_one_referendum_active(chat_id, user_id)
+		msg_err = check_input('log', args, chat_id, msg_id, user_id)
+
+		if msg_err == '':
+			if args:
+				msg_id = int(args)
+			msg = read_file(config.FILE_LOG, chat_id, msg_id)
+
+			if not msg:
+				msg = 'no logs'
+			await self.bot.send_message(user_id, msg[-4096:])
+
+		if msg_err:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_cron(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		user_id = message.from_user.id
+		rfr_type = 0
+
+		args = message.get_args().split("|")
+		msg_err = check_input('cron', args)
+
+		if msg_err == '':
+			date_time = args[0]
+			rfr_cmd = args[1]
+			args = args[2:]
+
+			msg_err = check_input(rfr_cmd, args)
+
+			if msg_err == '':
+				if rfr_cmd == config.RFR_GAME_CMD:
+					rfr_type = config.RFR_GAME
+				elif rfr_cmd == config.RFR_SINGLE_CMD:
+					rfr_type = config.RFR_SINGLE
+				elif rfr_cmd == config.RFR_MULTI_CMD:
+					rfr_type = config.RFR_MULTI
+				elif rfr_cmd == config.RFR_GAME2_CMD:
+					rfr_type = config.RFR_GAME2
+
+				await self.bot.send_message(user_id, f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, scheduled at {date_time}")
+				db.create_referendum_db(chat_id = chat_id,
+										msg_id = msg_id,
+										user_id = message.from_user.id,
+										user_name = get_username(message.from_user),
+										rfr_type = rfr_type,
+										args = args)
+
+				msg = await self.update_message(message.chat, msg_id)
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+				# db.set_referendum_status_db(chat_id, msg_id, 0)
+			else:
+				await self.bot.send_message(user_id, msg_err)
+
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_get_regular_players(self, message: types.Message):
 		chat_id = message.chat.id
@@ -495,34 +535,6 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
-	async def cmd_get_silent(self, message: types.Message):
-		chat_id = message.chat.id
-		msg_id_del = message.message_id
-		user_id = message.from_user.id
-		args = message.get_args()
-
-		msg = []
-		msg_id = is_one_referendum_active(chat_id, user_id)
-		msg_err = check_input(cmd = 'get_silent', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
-
-		if msg_err == '':
-			if args:
-				msg_id = int(args)
-
-			silent_members = db.get_silent_members_db(chat_id, msg_id)
-
-			for p in silent_members:
-				msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']} ({p['user_name']})}}")
-
-			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg))
-			else:
-				await self.bot.send_message(message.from_user.id, f"There're no silent members in \"{message.chat.title}\" now")
-		else:
-			await self.bot.send_message(user_id, msg_err)
-
-		await self.bot.delete_message(chat_id, msg_id_del)
-
 	async def cmd_set_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
@@ -552,31 +564,31 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
-	async def cmd_add_btn(self, message: types.Message):
+	async def cmd_get_silent(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
-		args = message.get_args().split("|")
+		args = message.get_args()
 
-		msg_err = check_input(cmd = 'add_btn', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
+		msg = []
+		msg_id = is_one_referendum_active(chat_id, user_id)
+		msg_err = check_input(cmd = 'get_silent', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
 
 		if msg_err == '':
-			msg_id = int(args[0])
-			button_text = args[1]
-			referendum = db.get_referendum_db(chat_id, msg_id)
+			if args:
+				msg_id = int(args)
 
-			if referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI):
-				db.add_button(chat_id, msg_id, button_text)
+			silent_members = db.get_silent_members_db(chat_id, msg_id)
 
-				msg = await self.update_message(message.chat, msg_id)
-				keyboard = self.get_keyboard(chat_id, msg_id)
-				await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+			for p in silent_members:
+				msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']} ({p['user_name']})}}")
 
-				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} added button {button_text}")
+			if msg:
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg))
 			else:
-				await self.bot.send_message(message.from_user.id, f"Unable to add button. Type of referendum is GAME")
+				await self.bot.send_message(message.from_user.id, f"There're no silent members in \"{message.chat.title}\" now")
 		else:
-			await self.bot.send_message(message.from_user.id, msg_err)
+			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id_del)
 
