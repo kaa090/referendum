@@ -109,6 +109,20 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if args[1] not in (config.RFR_GAME_CMD, config.RFR_SINGLE_CMD, config.RFR_MULTI_CMD, config.RFR_GAME2_CMD):
 			return f"vote type = {{{config.RFR_GAME_CMD}, {config.RFR_SINGLE_CMD}, {config.RFR_MULTI_CMD}, {config.RFR_GAME2_CMD}}}"
 
+	elif cmd == 'get_silent':
+		if args:
+			if args.isnumeric() == False:
+				return "msg_id should be a number"
+
+			msg_id = int(args)
+			if db.check_msg_id(chat_id, msg_id) == False:
+				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+			if db.check_user_id(chat_id, msg_id, user_id) == False:
+				return "this is not your referendum!"
+		else:
+			if msg_id == 0:
+				return "usage: /get_silent msg_id"
+
 	return ''
 
 def get_username(user):
@@ -196,6 +210,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
+		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
 
@@ -456,9 +471,9 @@ class MyBot:
 		msg_id = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args()
+
 		msg = []
 		player_type = -1
-
 		msg_err = check_input(cmd = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
 
 		if msg_err == '':
@@ -479,6 +494,34 @@ class MyBot:
 			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_get_silent(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args()
+
+		msg = []
+		msg_id = is_one_referendum_active(chat_id, user_id)
+		msg_err = check_input(cmd = 'get_silent', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
+
+		if msg_err == '':
+			if args:
+				msg_id = int(args)
+
+			silent_members = db.get_silent_members_db(chat_id, msg_id)
+
+			for p in silent_members:
+				msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']} ({p['user_name']})}}")
+
+			if msg:
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg))
+			else:
+				await self.bot.send_message(message.from_user.id, f"There're no silent members in \"{message.chat.title}\" now")
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_set_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
