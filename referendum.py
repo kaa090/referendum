@@ -220,7 +220,7 @@ class MyBot:
 
 		executor.start_polling(self.dp, skip_updates = True)
 
-	async def kill_pin(self, message: types.Message):
+	async def cmd_kill_pin(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
