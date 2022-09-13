@@ -227,7 +227,7 @@ class MyBot:
 
 		msg_id = is_one_referendum_active(chat_id, user_id)
 
-		await self.bot.delete_message(chat_id, msg_id + 1)
+		await self.bot.delete_message(chat_id, msg_id + 2)
 		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_start(self, message: types.Message):
