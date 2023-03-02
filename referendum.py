@@ -212,6 +212,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
+		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
 
 		self.callback_numbers = CallbackData("prefix", "button")
@@ -581,6 +582,28 @@ class MyBot:
 			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_notify(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args()
+
+		msg = ""		
+		players = db.get_regular_players_db(chat_id)
+		userlist = []
+
+		print(players)
+		for p in players:
+			userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
+		
+		if userlist:
+			msg += escape_md((str(args))) + '\n'
+			msg += ", ".join(userlist) + '\n'
+			
+			if msg:
+				await message.answer(msg, parse_mode = "MarkdownV2")
+			await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_extend_table(self, message: types.Message):
 		chat_id = message.chat.id
