@@ -11,5 +11,5 @@
 /get_reg
 /set_reg user_id|player_type
 /get_silent msg_id*
-/notify текст
+/notify msg_id|текст
 * — необязательный параметр, при наличии только одного своего открытого опроса в группе
