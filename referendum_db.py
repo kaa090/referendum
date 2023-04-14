@@ -724,6 +724,21 @@ def set_regular_player_db(chat_id, user_id, user_name, player_type):
 
 	exec_sql(sql, row)
 
+def del_regular_player_db(chat_id, user_id):
+	sql = '''
+		DELETE
+			from regular_players
+			where
+				chat_id = {} and
+				user_id = {}
+	'''.format(chat_id, user_id)
+
+	con = db_connect()
+	cur = con.cursor()
+	cur.execute(sql)
+	con.commit()
+	con.close()
+
 def is_regular_player(chat_id, user_id):
 	player = get_regular_player_db(chat_id, user_id)
 
