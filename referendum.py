@@ -585,6 +585,7 @@ class MyBot:
 		msg_id = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
+		deleted_players = []
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		if member['status'] in ('administrator', 'creator'):
@@ -593,9 +594,14 @@ class MyBot:
 			if msg_err == '':
 				users_id_del = args
 				for uid in users_id_del:
+					player = db.get_regular_player_db(chat_id, uid)
+					deleted_players.append(f"{player['user_name']}({uid})")
 					db.del_regular_player_db(chat_id = chat_id, user_id = uid)
 
-				await self.bot.send_message(user_id, "Users deleted")
+				msg = ", ".join(deleted_players)
+				msg = f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} delete regular players: {msg}"
+				logging.info(msg)
+				await self.bot.send_message(user_id, msg)
 
 			else:
 				await self.bot.send_message(user_id, msg_err)
