@@ -645,7 +645,6 @@ class MyBot:
 		args = message.get_args().split("|")
 
 		msg = ""
-		players = db.get_regular_players_db(chat_id)
 		userlist = []
 		
 		msg_err = check_input(cmd = 'notify', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
@@ -657,7 +656,8 @@ class MyBot:
 			silent_members = db.get_silent_members_db(chat_id, msg_id)
 
 			for p in silent_members:
-				userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
+				member = await self.bot.get_chat_member(chat_id, p['user_id'])
+				userlist.append(f"[{escape_md(get_username(member['user']))}](tg://user?id={p['user_id']})")
 
 			if userlist:
 				msg += ", ".join(userlist) + '\n'
