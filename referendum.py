@@ -123,6 +123,19 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 			if msg_id == 0:
 				return "usage: /get_silent msg_id"
 
+	elif cmd == 'notify':
+		if len(args) < 2:
+			return "usage: /notify msg_id|text"
+
+		if len(args) >= 1 and args[0].isnumeric() == False:
+			return "msg_id should be a number"
+		else:
+			msg_id = int(args[0])
+			if db.check_msg_id(chat_id, msg_id) == False:
+				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+			if db.check_user_id(chat_id, msg_id, user_id) == False:
+				return "this is not your referendum!"		
+
 	return ''
 
 def get_username(user):
@@ -587,17 +600,17 @@ class MyBot:
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
-		args = message.get_args()
+		args = message.get_args().split("|")
 
 		msg = ""
 		players = db.get_regular_players_db(chat_id)
 		userlist = []
-		msg_id = is_one_referendum_active(chat_id, user_id)
-		msg_err = check_input(cmd = 'get_silent', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
+		
+		msg_err = check_input(cmd = 'notify', args = args, chat_id = chat_id, msg_id = 0, user_id = user_id)
 
 		if msg_err == '':
-			if args:
-				msg_id = int(args)
+			msg_id = int(args[0])
+			text = str(args[1])
 
 			silent_members = db.get_silent_members_db(chat_id, msg_id)
 
@@ -605,7 +618,7 @@ class MyBot:
 				userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
 
 			if userlist:
-				msg += escape_md((str(args))) + '\n'
+				msg += escape_md(text) + '\n'
 				msg += ", ".join(userlist) + '\n'
 				await message.answer(msg, parse_mode = "MarkdownV2")
 		else:
