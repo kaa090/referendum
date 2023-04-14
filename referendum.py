@@ -602,6 +602,7 @@ class MyBot:
 		else:
 			await self.bot.send_message(user_id, "Only administrator can delete users")
 
+		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_get_silent(self, message: types.Message):
 		chat_id = message.chat.id
