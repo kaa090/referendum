@@ -136,7 +136,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	elif cmd == 'notify':
 		if len(args) == 1 and msg_id == 0:
 				return "usage: /notify msg_id*|text"
-		elif len(args) > 1 
+		elif len(args) > 1:
 			if args[0].isnumeric() == False:
 				return "msg_id should be a number"
 			else:
