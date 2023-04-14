@@ -135,16 +135,16 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 	elif cmd == 'notify':
 		if len(args) == 1 and msg_id == 0:
-			return "usage: /notify msg_id*|text"
-
-		if len(args) > 1 and args[0].isnumeric() == False:
-			return "msg_id should be a number"
-		else:
-			msg_id = int(args[0])
-			if db.check_msg_id(chat_id, msg_id) == False:
-				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
-			if db.check_user_id(chat_id, msg_id, user_id) == False:
-				return "this is not your referendum!"		
+				return "usage: /notify msg_id*|text"
+		elif len(args) > 1 
+			if args[0].isnumeric() == False:
+				return "msg_id should be a number"
+			else:
+				msg_id = int(args[0])
+				if db.check_msg_id(chat_id, msg_id) == False:
+					return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+				if db.check_user_id(chat_id, msg_id, user_id) == False:
+					return "this is not your referendum!"
 
 	return ''
 
