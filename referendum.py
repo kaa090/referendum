@@ -589,21 +589,29 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args()
 
-		msg = ""		
+		msg = ""
 		players = db.get_regular_players_db(chat_id)
 		userlist = []
+		msg_id = is_one_referendum_active(chat_id, user_id)
+		msg_err = check_input(cmd = 'get_silent', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
 
-		print(players)
-		for p in players:
-			userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
-		
-		if userlist:
-			msg += escape_md((str(args))) + '\n'
-			msg += ", ".join(userlist) + '\n'
-			
-			if msg:
+		if msg_err == '':
+			if args:
+				msg_id = int(args)
+
+			silent_members = db.get_silent_members_db(chat_id, msg_id)
+
+			for p in silent_members:
+				userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
+
+			if userlist:
+				msg += escape_md((str(args))) + '\n'
+				msg += ", ".join(userlist) + '\n'
 				await message.answer(msg, parse_mode = "MarkdownV2")
-			await self.bot.delete_message(chat_id, msg_id_del)
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_extend_table(self, message: types.Message):
 		chat_id = message.chat.id
