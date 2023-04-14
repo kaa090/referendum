@@ -83,6 +83,16 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if args[0].isnumeric() == False or args[1].isnumeric() == False:
 			return "user_id and player_type should be a number"
 
+	elif cmd == 'del_reg':
+		users_id = args
+		
+		if len(users_id) == 0:
+			return "usage: /del_reg user_id_1|user_id_2|...|user_id_N"
+
+		for uid in users_id:
+			if uid.isnumeric() == False:
+				return "user_id should be a number"
+
 	elif cmd == 'add_btn':
 		if len(args) != 2:
 			return "usage: /add_btn msg_id|button_text"
@@ -224,6 +234,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
+		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
@@ -568,9 +579,29 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
+	
+	async def cmd_del_regular_player(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg_err = check_input(cmd = 'del_reg', args = args)
+
+		if msg_err == '':
+			users_id_del = args
+			for uid in users_id_del:
+				db.del_regular_player_db(chat_id = chat_id, user_id = uid)
+
+			await self.bot.send_message(user_id, "Users deleted")
+
+		else:
+			await self.bot.send_message(user_id, msg_err)
+
+
 	async def cmd_get_silent(self, message: types.Message):
 		chat_id = message.chat.id
-		msg_id_del = message.message_id
+		msg_id = message.message_id
 		user_id = message.from_user.id
 		args = message.get_args()
 
