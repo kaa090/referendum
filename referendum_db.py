@@ -810,28 +810,23 @@ def get_silent_members_db(chat_id, msg_id):
 	cur = con.cursor()
 
 	sql = '''
-		SELECT user_id, user_name
+		SELECT user_id
 			from regular_players
 			where chat_id = {}
 	'''.format(chat_id)
 	rows = cur.execute(sql).fetchall()
 	for row in rows:
-		chat_members.append({'user_id': row['user_id'], 'user_name': row['user_name']})
+		chat_members.append({'user_id': row['user_id']})
 
-	sql = '''
-		SELECT user_id, user_name
-			from rfr_log
-			where
-				chat_id = {} and
-				msg_id = {}
-			group by
-				user_id, user_name
-	'''.format(chat_id, msg_id)
-	rows = cur.execute(sql).fetchall()
-	con.close()
 
-	for row in rows:
-		active_members.append({'user_id': row['user_id'], 'user_name': row['user_name']})
+	buttons = get_buttons_db(chat_id, msg_id)
+	votes = get_votes_db(chat_id, msg_id)
+
+	for button_id in buttons:
+		for usr in votes[button_id]['players']:
+			active_members.append({'user_id': usr['user_id']})
+		for usr in votes[button_id]['queue']:
+			active_members.append({'user_id': usr['user_id']})
 
 	silent_members = [p for p in chat_members if p not in active_members]
 
