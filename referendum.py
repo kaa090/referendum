@@ -85,7 +85,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 	elif cmd == 'del_reg':
 		users_id = args
-		
+
 		if len(users_id) == 0:
 			return "usage: /del_reg user_id_1|user_id_2|...|user_id_N"
 
@@ -586,17 +586,21 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg_err = check_input(cmd = 'del_reg', args = args)
+		member = await bot.get_chat_member(chat_id, user_id)
+		if member['status'] == 'administrator':
+			msg_err = check_input(cmd = 'del_reg', args = args)
 
-		if msg_err == '':
-			users_id_del = args
-			for uid in users_id_del:
-				db.del_regular_player_db(chat_id = chat_id, user_id = uid)
+			if msg_err == '':
+				users_id_del = args
+				for uid in users_id_del:
+					db.del_regular_player_db(chat_id = chat_id, user_id = uid)
 
-			await self.bot.send_message(user_id, "Users deleted")
+				await self.bot.send_message(user_id, "Users deleted")
 
+			else:
+				await self.bot.send_message(user_id, msg_err)
 		else:
-			await self.bot.send_message(user_id, msg_err)
+			await self.bot.send_message(user_id, "Only administrator can delete users")
 
 
 	async def cmd_get_silent(self, message: types.Message):
