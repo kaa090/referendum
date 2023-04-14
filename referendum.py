@@ -586,8 +586,8 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		member = await bot.get_chat_member(chat_id, user_id)
-		if member['status'] == 'administrator':
+		member = await self.bot.get_chat_member(chat_id, user_id)
+		if member['status'] in ('administrator', 'creator'):
 			msg_err = check_input(cmd = 'del_reg', args = args)
 
 			if msg_err == '':
