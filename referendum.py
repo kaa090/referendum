@@ -618,8 +618,8 @@ class MyBot:
 				userlist.append(f"[{escape_md(p['user_name'])}](tg://user?id={p['user_id']})")
 
 			if userlist:
-				msg += escape_md(text) + '\n'
 				msg += ", ".join(userlist) + '\n'
+				msg += escape_md(text) + '\n'
 				await message.answer(msg, parse_mode = "MarkdownV2")
 		else:
 			await self.bot.send_message(user_id, msg_err)
