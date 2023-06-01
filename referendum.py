@@ -167,8 +167,8 @@ def get_next_player(votes, buttons, friends, friends_needed):
 			next_player = f"{votes[button_id]['queue'][0]['user_name']}"
 		else:
 			if friends_needed >= 0:
-				for usr_id in friends:
-					next_player = f"участник от {friends[usr_id]['user_name']}"
+				for f in friends:
+					next_player = f"участник от {friends[f]['user_name']}"
 					if counter == 0:
 						break
 					else:
@@ -702,7 +702,9 @@ class MyBot:
 
 				votes_new = db.get_votes_db(chat_id, msg_id)
 
-				if len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+				if len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players'] and 
+					len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+					
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
 							msg_user_id = new_player['user_id']
@@ -710,9 +712,9 @@ class MyBot:
 				else:
 					friends_needed = referendum['max_players'] - len(votes_new[config.BUTTON_ID_YES]['players'])
 					counter = friends_needed
-					for usr_id in friends:
+					for f in friends:
 						if counter == 1:
-							msg_user_id = friends[usr_id]
+							msg_user_id = f
 							msg = f"В кворуме освободилось место, и участник от Вас его занял! Не забудьте ему напомнить приехать на игру!"
 							break
 						else:
