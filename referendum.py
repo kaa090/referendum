@@ -699,9 +699,9 @@ class MyBot:
 				friends_players += friends[f]['friends']
 
 			if len(votes_old[config.BUTTON_ID_YES]['players']) + friends_players >= referendum['max_players']:
-				
+
 				votes_new = db.get_votes_db(chat_id, msg_id)
-				
+
 				if len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
@@ -709,14 +709,14 @@ class MyBot:
 							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
 				else:
 					friends_needed = referendum['max_players'] - len(votes_new[config.BUTTON_ID_YES]['players'])
-					counter = friends_needed					
+					counter = friends_needed
 					for usr_id in friends:
-						if counter == 0:
+						if counter == 1:
 							msg_user_id = friends[usr_id]
-							msg = f"В кворуме освободилось место, и участник отВас его занял! Не забудьте ему напомнить приехать на игру!"
+							msg = f"В кворуме освободилось место, и участник от Вас его занял! Не забудьте ему напомнить приехать на игру!"
 							break
 						else:
-							counter -= 1					
+							counter -= 1
 
 				if msg_user_id:
 					await self.bot.send_message(msg_user_id, msg)
