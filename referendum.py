@@ -713,7 +713,7 @@ class MyBot:
 								user_name = user_name,
 								button_id = int(callback_data['button']))
 
-		await send_message_to_new_player(chat_id, msg_id, referendum, votes)
+		await self.send_message_to_new_player(chat_id, msg_id, referendum, votes)
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		player_type = db.is_regular_player(chat_id, user_id)
