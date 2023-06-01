@@ -740,10 +740,7 @@ class MyBot:
 		return keyboard
 
 	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
-		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2)
-			and referendum['max_players'] 
-			and len(votes_old[BUTTON_ID_YES]['players']) == referendum['max_players']:
-
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players'] and len(votes_old[BUTTON_ID_YES]['players']) == referendum['max_players']:
 			if len(votes_new[BUTTON_ID_YES]['players']) == referendum['max_players']:
 				votes_new = db.get_votes_db(chat_id, msg_id)
 				for new_player in votes_new[BUTTON_ID_YES]['players']:
