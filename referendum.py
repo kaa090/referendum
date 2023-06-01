@@ -691,8 +691,8 @@ class MyBot:
 
 	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players'] and len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+			votes_new = db.get_votes_db(chat_id, msg_id)
 			if len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
-				votes_new = db.get_votes_db(chat_id, msg_id)
 				for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 					if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
 						msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
