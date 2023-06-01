@@ -689,6 +689,15 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
+	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players'] and len(votes_old[BUTTON_ID_YES]['players']) == referendum['max_players']:
+			if len(votes_new[BUTTON_ID_YES]['players']) == referendum['max_players']:
+				votes_new = db.get_votes_db(chat_id, msg_id)
+				for new_player in votes_new[BUTTON_ID_YES]['players']:
+					if new_player not in votes_old[BUTTON_ID_YES]['players']:
+						msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
+						await self.bot.send_message(new_player['user_id'], msg)
+
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
 		msg_id = cbq.message.message_id - 1
@@ -738,15 +747,6 @@ class MyBot:
 		keyboard.add(*keyboard_btns)
 
 		return keyboard
-
-	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
-		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players'] and len(votes_old[BUTTON_ID_YES]['players']) == referendum['max_players']:
-			if len(votes_new[BUTTON_ID_YES]['players']) == referendum['max_players']:
-				votes_new = db.get_votes_db(chat_id, msg_id)
-				for new_player in votes_new[BUTTON_ID_YES]['players']:
-					if new_player not in votes_old[BUTTON_ID_YES]['players']:
-						msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
-						await self.bot.send_message(new_player['user_id'], msg)
 
 	async def update_message(self, chat, msg_id):
 		chat_id = chat.id
