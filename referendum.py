@@ -695,11 +695,16 @@ class MyBot:
 		user_id = cbq.from_user.id
 		user_name = get_username(cbq.from_user)
 
+		referendum = db.get_referendum_db(chat_id, msg_id)
+		votes = db.get_votes_db(chat_id, msg_id)
+
 		action = db.set_vote_db(chat_id = chat_id,
-					msg_id = msg_id,
-					user_id = user_id,
-					user_name = user_name,
-					button_id = int(callback_data['button']))
+								msg_id = msg_id,
+								user_id = user_id,
+								user_name = user_name,
+								button_id = int(callback_data['button']))
+
+		await send_message_to_new_player(chat_id, msg_id, referendum, votes)
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		player_type = db.is_regular_player(chat_id, user_id)
@@ -733,6 +738,18 @@ class MyBot:
 		keyboard.add(*keyboard_btns)
 
 		return keyboard
+
+	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2)
+			and referendum['max_players'] 
+			and len(votes_old[BUTTON_ID_YES]['players']) == referendum['max_players']:
+
+			if len(votes_new[BUTTON_ID_YES]['players']) == referendum['max_players']:
+				votes_new = db.get_votes_db(chat_id, msg_id)
+				for new_player in votes_new[BUTTON_ID_YES]['players']:
+					if new_player not in votes_old[BUTTON_ID_YES]['players']:
+						msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
+						await self.bot.send_message(new_player['user_id'], msg)
 
 	async def update_message(self, chat, msg_id):
 		chat_id = chat.id
