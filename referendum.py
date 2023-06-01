@@ -702,8 +702,7 @@ class MyBot:
 
 				votes_new = db.get_votes_db(chat_id, msg_id)
 
-				if len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players'] and 
-					len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+				if len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players'] and len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
 					
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
