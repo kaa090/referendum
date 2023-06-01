@@ -720,7 +720,7 @@ class MyBot:
 							counter -= 1
 
 				if msg_user_id:
-					msg = f"{chat_title}\n{referendum['title']}\n{msg}"
+					msg = f"Группа: \"{chat_title}\"\nИгра: "{referendum['title']}"\n{msg}"
 					await self.bot.send_message(msg_user_id, msg)
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
