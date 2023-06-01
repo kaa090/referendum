@@ -690,13 +690,36 @@ class MyBot:
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
 	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
-		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players'] and len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
-			votes_new = db.get_votes_db(chat_id, msg_id)
-			if len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
-				for new_player in votes_new[config.BUTTON_ID_YES]['players']:
-					if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
-						msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
-						await self.bot.send_message(new_player['user_id'], msg)
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players']:
+			friends_players = 0
+			msg_user_id = 0
+
+			friends = db.get_friends_db(chat_id, msg_id)
+			for f in friends:
+				friends_players += friends[f]['friends']
+
+			if len(votes_old[config.BUTTON_ID_YES]['players']) + friends_players >= referendum['max_players']:
+				
+				votes_new = db.get_votes_db(chat_id, msg_id)
+				
+				if len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
+						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
+							msg_user_id = new_player['user_id']
+							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
+				else:
+					friends_needed = referendum['max_players'] - len(votes_new[config.BUTTON_ID_YES]['players'])
+					counter = friends_needed					
+					for usr_id in friends:
+						if counter == 0:
+							msg_user_id = friends[usr_id]
+							msg = f"В кворуме освободилось место, и участник отВас его занял! Не забудьте ему напомнить приехать на игру!"
+							break
+						else:
+							counter -= 1					
+
+				if msg_user_id:
+					await self.bot.send_message(msg_user_id, msg)
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
