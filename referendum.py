@@ -689,7 +689,7 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
-	async def send_message_to_new_player(self, chat_id, msg_id, referendum, votes_old):
+	async def send_message_to_new_player(self, chat_id, chat_title, msg_id, referendum, votes_old):
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players']:
 			friends_players = 0
 			msg_user_id = 0
@@ -703,7 +703,7 @@ class MyBot:
 				votes_new = db.get_votes_db(chat_id, msg_id)
 
 				if len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players'] and len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
-					
+
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
 							msg_user_id = new_player['user_id']
@@ -720,6 +720,7 @@ class MyBot:
 							counter -= 1
 
 				if msg_user_id:
+					msg = f"{chat_title}\n{referendum['title']}\n{msg}"
 					await self.bot.send_message(msg_user_id, msg)
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
@@ -737,7 +738,7 @@ class MyBot:
 								user_name = user_name,
 								button_id = int(callback_data['button']))
 
-		await self.send_message_to_new_player(chat_id, msg_id, referendum, votes)
+		await self.send_message_to_new_player(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		player_type = db.is_regular_player(chat_id, user_id)
