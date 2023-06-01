@@ -156,17 +156,23 @@ def get_username(user):
 	else:
 		return user.first_name
 
-def get_next_player(votes, buttons, friends):
+def get_next_player(votes, buttons, friends, friends_needed):
 	next_player = ''
 	button_id = config.BUTTON_ID_YES
+
+	counter = friends_needed
 
 	if len(buttons):
 		if votes[button_id]['queue']:
 			next_player = f"{votes[button_id]['queue'][0]['user_name']}"
 		else:
-			for usr_id in friends:
-				next_player = f"участник от {friends[usr_id]['user_name']}"
-				break
+			if friends_needed >= 0:
+				for usr_id in friends:
+					next_player = f"участник от {friends[usr_id]['user_name']}"
+					if counter == 0:
+						break
+					else:
+						counter -= 1
 
 	return next_player
 
@@ -579,7 +585,7 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
-	
+
 	async def cmd_del_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
@@ -647,10 +653,10 @@ class MyBot:
 
 		msg = ""
 		userlist = []
-		
+
 		msg_id = is_one_referendum_active(chat_id, user_id)
 		msg_err = check_input(cmd = 'notify', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
-		
+
 		if msg_err == '':
 			if len(args) == 2:
 				msg_id = int(args[0])
@@ -741,6 +747,7 @@ class MyBot:
 		regular_players = 0
 		other_players = 0
 		friends_players = 0
+		friends_needed = 0
 		entry_fee = 0
 		sym = ''
 		flag_regular_used = False
@@ -876,7 +883,8 @@ class MyBot:
 
 			if referendum['max_players']:
 				free_slots = referendum['max_players'] - button_1_votes - friends_players
-				next_player = get_next_player(votes, buttons, friends)
+				friends_needed = referendum['max_players'] - button_1_votes
+				next_player = get_next_player(votes, buttons, friends, friends_needed)
 
 				if free_slots >= 0:
 					msg += f"*Свободных мест: {free_slots}*\n"
