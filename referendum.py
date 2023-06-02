@@ -594,8 +594,10 @@ class MyBot:
 		deleted_players = []
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
-		await self.bot.send_message(user_id, member['status'])
-		if member['status'] in ('administrator', 'owner'):
+		
+		await self.bot.send_message(user_id, f"chat_id={chat_id}, user_id={user_id}, status={member['status']}")
+		
+		if member['status'] in ('administrator', 'creator'):
 			msg_err = check_input(cmd = 'del_reg', args = args)
 
 			if msg_err == '':
