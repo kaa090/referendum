@@ -594,7 +594,8 @@ class MyBot:
 		deleted_players = []
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
-		if member['status'] in ('administrator', 'creator'):
+		await self.bot.send_message(user_id, member['status'])
+		if member['status'] in ('administrator', 'owner'):
 			msg_err = check_input(cmd = 'del_reg', args = args)
 
 			if msg_err == '':
@@ -705,7 +706,7 @@ class MyBot:
 			for f in friends:
 				players_friends += friends[f]['friends']
 
-			if players_old + players_friends > max_players:
+			if players_old + players_friends >= max_players:
 				votes_new = db.get_votes_db(chat_id, msg_id)
 				players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
 
