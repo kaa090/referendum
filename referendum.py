@@ -689,39 +689,61 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
-	async def send_message_to_new_player(self, chat_id, chat_title, msg_id, referendum, votes_old):
-		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['max_players']:
-			friends_players = 0
-			msg_user_id = 0
+	async def send_message_if_lineup_changed(self, chat_id, chat_title, msg_id, referendum, votes_old):
+		max_players = 0
+		players_old = 0
+		players_new = 0
+		players_friends = 0
+		user_id_msg = 0
 
+		max_players = referendum['max_players']
+		players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
+
+		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and max_players > 0:
 			friends = db.get_friends_db(chat_id, msg_id)
+
 			for f in friends:
-				friends_players += friends[f]['friends']
+				players_friends += friends[f]['friends']
 
-			if len(votes_old[config.BUTTON_ID_YES]['players']) + friends_players >= referendum['max_players']:
-
+			if players_old + players_friends > max_players:
 				votes_new = db.get_votes_db(chat_id, msg_id)
+				players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
 
-				if len(votes_old[config.BUTTON_ID_YES]['players']) == referendum['max_players'] and len(votes_new[config.BUTTON_ID_YES]['players']) == referendum['max_players']:
+				if( players_old == max_players and
+					players_new == max_players ):
 
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
-							msg_user_id = new_player['user_id']
+							user_id_msg = new_player['user_id']
 							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
-				else:
-					friends_needed = referendum['max_players'] - len(votes_new[config.BUTTON_ID_YES]['players'])
+
+				elif players_old > players_new:
+					friends_needed = max_players - players_new
 					counter = friends_needed
+
 					for f in friends:
 						if counter == 1:
-							msg_user_id = f
+							user_id_msg = f
 							msg = f"В кворуме освободилось место, и участник от Вас его занял! Не забудьте ему напомнить приехать на игру!"
 							break
 						else:
 							counter -= 1
 
-				if msg_user_id:
+				elif players_old < players_new:
+					friend_out = max_players - players_old
+					counter = 1
+
+					for f in friends:
+						if counter == friend_out:
+							user_id_msg = f
+							msg = f"Место вашего друга в кворуме занял постоянный участник, не забудьте ему об этом напомнить."
+							break
+						else:
+							counter += 1
+
+				if user_id_msg:
 					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
-					await self.bot.send_message(msg_user_id, msg, parse_mode='HTML')
+					await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
@@ -738,7 +760,7 @@ class MyBot:
 								user_name = user_name,
 								button_id = int(callback_data['button']))
 
-		await self.send_message_to_new_player(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
+		await self.send_message_if_lineup_changed(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		player_type = db.is_regular_player(chat_id, user_id)
@@ -785,7 +807,7 @@ class MyBot:
 		votes_percent_by_chat = 0
 		regular_players = 0
 		other_players = 0
-		friends_players = 0
+		players_friends = 0
 		friends_needed = 0
 		entry_fee = 0
 		sym = ''
@@ -807,7 +829,7 @@ class MyBot:
 			flag_game_game2 = False
 
 		for f in friends:
-			friends_players += friends[f]['friends']
+			players_friends += friends[f]['friends']
 
 		unique_users = set()
 		for button_id in votes:
@@ -834,7 +856,7 @@ class MyBot:
 						other_players +=1
 
 		if flag_game_game2:
-			plr_yes = button_1_votes + friends_players
+			plr_yes = button_1_votes + players_friends
 
 			if referendum['max_players']:
 				plr_max = referendum['max_players']
@@ -889,7 +911,7 @@ class MyBot:
 						msg += f"\\[{', '.join(userlist)}\\]\n\n"
 
 				if flag_game_game2 and button_id == config.BUTTON_ID_YES:
-					if friends_players:
+					if players_friends:
 						bttn4_text = buttons[config.BUTTON_ID_ADD]['button_text']
 						plur = get_morph(bttn4_text)
 
@@ -916,12 +938,12 @@ class MyBot:
 
 		if flag_game_game2:
 			if flag_regular_used:
-				msg += f"*Кворум: {button_1_votes + friends_players} \\(пост \\- {regular_players}, раз \\- {other_players + friends_players}\\)*\n"
+				msg += f"*Кворум: {button_1_votes + players_friends} \\(пост \\- {regular_players}, раз \\- {other_players + players_friends}\\)*\n"
 			else:
-				msg += f"*Кворум: {button_1_votes + friends_players}*\n"
+				msg += f"*Кворум: {button_1_votes + players_friends}*\n"
 
 			if referendum['max_players']:
-				free_slots = referendum['max_players'] - button_1_votes - friends_players
+				free_slots = referendum['max_players'] - button_1_votes - players_friends
 				friends_needed = referendum['max_players'] - button_1_votes
 				next_player = get_next_player(votes, buttons, friends, friends_needed)
 
@@ -932,10 +954,10 @@ class MyBot:
 					msg += f"*Следующий: {escape_md(next_player)}*\n"
 
 			if referendum['game_cost']:
-				if button_1_votes + friends_players > referendum['max_players'] > 0:
+				if button_1_votes + players_friends > referendum['max_players'] > 0:
 					entry_fee = int(round(referendum['game_cost'] / referendum['max_players'], 0))
-				elif button_1_votes + friends_players:
-					entry_fee = int(round(referendum['game_cost'] / (button_1_votes + friends_players), 0))
+				elif button_1_votes + players_friends:
+					entry_fee = int(round(referendum['game_cost'] / (button_1_votes + players_friends), 0))
 				else:
 					entry_fee = referendum['game_cost']
 
