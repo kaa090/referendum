@@ -720,8 +720,8 @@ class MyBot:
 							counter -= 1
 
 				if msg_user_id:
-					msg = f"**Группа:** \"{chat_title}\"\n**Тема опроса:** \"{referendum['title']}\"\n{msg}"
-					await self.bot.send_message(msg_user_id, msg)
+					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
+					await self.bot.send_message(msg_user_id, msg, parse_mode='HTML')
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
