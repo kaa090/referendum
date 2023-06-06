@@ -765,8 +765,6 @@ class MyBot:
 								user_name = user_name,
 								button_id = int(callback_data['button']))
 
-		await self.send_message_if_lineup_changed(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
-
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		player_type = db.is_regular_player(chat_id, user_id)
 		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = get_username(member['user']), player_type = player_type)
@@ -779,6 +777,7 @@ class MyBot:
 		await cbq.answer()
 
 		logging.info(f"chat_id={chat_id}({cbq.message.chat.title}), msg_id={msg_id}, user {get_username(cbq.from_user)} {action}, button {int(callback_data['button'])}")
+		await self.send_message_if_lineup_changed(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
