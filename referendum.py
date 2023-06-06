@@ -159,7 +159,7 @@ def get_username(user):
 def get_next_player(votes, buttons, friends, friends_needed):
 	next_player = ''
 	button_id = config.BUTTON_ID_YES
-
+	exit = 0
 	counter = friends_needed
 
 	if len(buttons):
@@ -167,14 +167,18 @@ def get_next_player(votes, buttons, friends, friends_needed):
 			next_player = f"{votes[button_id]['queue'][0]['user_name']}"
 		else:
 			if friends_needed >= 0:
-				for f in friends:
-					next_player = f"участник от {friends[f]['user_name']}"
-					if counter == 0:
+				for uid in friends:
+					for f in range(friends[uid]['friends']):
+						next_player = f"участник от {friends[uid]['user_name']}"
+						if counter == 0:
+							exit = 1
+							break
+						else:
+							counter -= 1
+					if exit:
 						break
-					else:
-						counter -= 1
 
-	return next_player
+		return next_player
 
 def is_one_referendum_active(chat_id, user_id):
 	referendums = db.get_referendums_by_user_id_db(chat_id = chat_id, user_id = user_id, status = 1)
@@ -703,8 +707,8 @@ class MyBot:
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and max_players > 0:
 			friends = db.get_friends_db(chat_id, msg_id)
 
-			for f in friends:
-				players_friends += friends[f]['friends']
+			for uid in friends:
+				players_friends += friends[uid]['friends']
 
 			if players_old + players_friends >= max_players:
 				votes_new = db.get_votes_db(chat_id, msg_id)
@@ -722,9 +726,9 @@ class MyBot:
 					friends_needed = max_players - players_new
 					counter = friends_needed
 
-					for f in friends:
+					for uid in friends:
 						if counter == 1:
-							user_id_msg = f
+							user_id_msg = uid
 							msg = f"В кворуме освободилось место, и участник от Вас его занял! Не забудьте ему напомнить приехать на игру!"
 							break
 						else:
@@ -734,9 +738,9 @@ class MyBot:
 					friend_out = max_players - players_old
 					counter = 1
 
-					for f in friends:
+					for uid in friends:
 						if counter == friend_out:
-							user_id_msg = f
+							user_id_msg = uid
 							msg = f"Место вашего друга в кворуме занял постоянный участник, не забудьте ему об этом напомнить."
 							break
 						else:
@@ -829,8 +833,8 @@ class MyBot:
 		else:
 			flag_game_game2 = False
 
-		for f in friends:
-			players_friends += friends[f]['friends']
+		for uid in friends:
+			players_friends += friends[uid]['friends']
 
 		unique_users = set()
 		for button_id in votes:
@@ -928,8 +932,6 @@ class MyBot:
 								sym = '_'
 							msg += f"{sym}[{escape_md(friends[user_id]['user_name'])}](tg://user?id={user_id}){sym} \\- {friends[user_id]['friends']}\n"
 						msg += '\n'
-					else:
-						continue
 
 		if chat_members - 1:
 			votes_percent_by_chat = int(100 * round(unique_users_votes/(chat_members-1), 2))
