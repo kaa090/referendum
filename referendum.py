@@ -598,7 +598,7 @@ class MyBot:
 		deleted_players = []
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
-		
+
 		if member['status'] in ('administrator', 'creator'):
 			msg_err = check_input(cmd = 'del_reg', args = args)
 
@@ -638,7 +638,10 @@ class MyBot:
 			silent_members = db.get_silent_members_db(chat_id, msg_id)
 
 			for p in silent_members:
-				member = await self.bot.get_chat_member(chat_id, p['user_id'])
+				try:
+					member = await self.bot.get_chat_member(chat_id, p['user_id'])
+				except:
+					continue
 				msg.append(f"{{{chat_id}({message.chat.title}), user_id = {p['user_id']} ({escape_md(get_username(member['user']))})}}")
 
 			if msg:
@@ -672,7 +675,10 @@ class MyBot:
 			silent_members = db.get_silent_members_db(chat_id, msg_id)
 
 			for p in silent_members:
-				member = await self.bot.get_chat_member(chat_id, p['user_id'])
+				try:
+					member = await self.bot.get_chat_member(chat_id, p['user_id'])
+				except:
+					continue
 				userlist.append(f"[{escape_md(get_username(member['user']))}](tg://user?id={p['user_id']})")
 
 			if userlist:
@@ -766,6 +772,7 @@ class MyBot:
 								button_id = int(callback_data['button']))
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
+
 		player_type = db.is_regular_player(chat_id, user_id)
 		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = get_username(member['user']), player_type = player_type)
 
