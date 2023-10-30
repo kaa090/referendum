@@ -818,7 +818,6 @@ def get_silent_members_db(chat_id, msg_id):
 	for row in rows:
 		chat_members.append({'user_id': row['user_id']})
 
-
 	buttons = get_buttons_db(chat_id, msg_id)
 	votes = get_votes_db(chat_id, msg_id)
 
@@ -831,3 +830,15 @@ def get_silent_members_db(chat_id, msg_id):
 	silent_members = [p for p in chat_members if p not in active_members]
 
 	return silent_members
+
+def get_undefined_members(chat_id, msg_id):
+	undefined_members = []
+
+	votes = get_votes_db(chat_id, msg_id)
+
+	for usr in votes[config.BUTTON_ID_Q]['players']:
+		undefined_members.append({'user_id': usr['user_id']})
+	for usr in votes[config.BUTTON_ID_Q]['queue']:
+		undefined_members.append({'user_id': usr['user_id']})
+
+	return undefined_members
