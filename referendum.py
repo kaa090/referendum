@@ -146,6 +146,19 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 				if db.check_user_id(chat_id, msg_id, user_id) == False:
 					return "this is not your referendum!"
 
+	elif cmd == 'notifyq':
+		if len(args) == 1 and msg_id == 0:
+				return "usage: /notifyq msg_id*|text"
+		elif len(args) > 1:
+			if args[0].isnumeric() == False:
+				return "msg_id should be a number"
+			else:
+				msg_id = int(args[0])
+				if db.check_msg_id(chat_id, msg_id) == False:
+					return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+				if db.check_user_id(chat_id, msg_id, user_id) == False:
+					return "this is not your referendum!"
+
 	return ''
 
 def get_username(user):
@@ -247,6 +260,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
+		self.dp.register_message_handler(self.cmd_notifyq, commands = "notifyq")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
 
 		self.callback_numbers = CallbackData("prefix", "button")
@@ -654,6 +668,11 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_notify(self, message: types.Message):
+		await self.notify(message, notify_type = "silent")
+	async def cmd_notifyq(self, message: types.Message):
+		await self.notify(message, notify_type = "button_?")
+
+	async def notify(self, message: types.Message, notify_type):
 		chat_id = message.chat.id
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
@@ -661,6 +680,7 @@ class MyBot:
 
 		msg = ""
 		userlist = []
+		users = []
 
 		msg_id = is_one_referendum_active(chat_id, user_id)
 		msg_err = check_input(cmd = 'notify', args = args, chat_id = chat_id, msg_id = msg_id, user_id = user_id)
@@ -672,14 +692,17 @@ class MyBot:
 			else:
 				text = str(args[0])
 
-			silent_members = db.get_silent_members_db(chat_id, msg_id)
+			if notify_type == "silent":
+				users = db.get_silent_members_db(chat_id, msg_id)
+			elif notify_type == "button_?":
+				users = db.get_undefined_members(chat_id, msg_id)
 
-			for p in silent_members:
+			for p in users:
 				try:
-					member = await self.bot.get_chat_member(chat_id, p['user_id'])
+					user = await self.bot.get_chat_member(chat_id, p['user_id'])
 				except:
 					continue
-				userlist.append(f"[{escape_md(get_username(member['user']))}](tg://user?id={p['user_id']})")
+				userlist.append(f"[{escape_md(get_username(user['user']))}](tg://user?id={p['user_id']})")
 
 			if userlist:
 				msg += ", ".join(userlist) + '\n'
