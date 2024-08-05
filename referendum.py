@@ -603,7 +603,6 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
-
 	async def cmd_del_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
@@ -705,6 +704,8 @@ class MyBot:
 				userlist.append(f"[{escape_md(get_username(user['user']))}](tg://user?id={p['user_id']})")
 
 			if userlist:
+				referendum = db.get_referendum_db(chat_id, msg_id)
+				msg += referendum['title'] + '\n'
 				msg += ", ".join(userlist) + '\n'
 				msg += escape_md(text) + '\n'
 				await message.answer(msg, parse_mode = "MarkdownV2")
