@@ -705,7 +705,7 @@ class MyBot:
 
 			if userlist:
 				referendum = db.get_referendum_db(chat_id, msg_id)
-				msg += referendum['title'] + '\n'
+				msg += "Опрос: " + referendum['title'] + '\n'
 				msg += ", ".join(userlist) + '\n'
 				msg += escape_md(text) + '\n'
 				await message.answer(msg, parse_mode = "MarkdownV2")
