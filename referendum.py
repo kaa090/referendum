@@ -780,11 +780,23 @@ class MyBot:
 					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 					await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
 
+	async def send_message_if_voted(self, chat_id, chat_title, msg_id, referendum, user_name, button_id):
+		user_id_msg = 575441834
+
+		if user_id_msg == referendum['user_id']:
+			buttons = db.get_buttons_db(chat_id, msg_id)
+
+			msg = f"Участник {user_name} нажал кнопку {buttons[button_id]['button_text']}"
+			msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
+			await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
 		msg_id = cbq.message.message_id - 1
 		user_id = cbq.from_user.id
 		user_name = get_username(cbq.from_user)
+		button_id = int(callback_data['button'])
+		chat_title = cbq.message.chat.title
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
@@ -793,7 +805,7 @@ class MyBot:
 								msg_id = msg_id,
 								user_id = user_id,
 								user_name = user_name,
-								button_id = int(callback_data['button']))
+								button_id = button_id)
 
 		member = await self.bot.get_chat_member(chat_id, user_id)
 
@@ -807,8 +819,11 @@ class MyBot:
 			await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
 		await cbq.answer()
 
-		logging.info(f"chat_id={chat_id}({cbq.message.chat.title}), msg_id={msg_id}, user {get_username(cbq.from_user)} {action}, button {int(callback_data['button'])}")
-		await self.send_message_if_lineup_changed(chat_id, cbq.message.chat.title, msg_id, referendum, votes)
+		log_msg = f"chat_id={chat_id}({chat_title}), msg_id={msg_id}, user {user_name} {action}, button {int(callback_data['button'])}"
+		logging.info(log_msg)
+
+		await self.send_message_if_voted(chat_id, chat_title, msg_id, referendum, user_name, button_id)
+		await self.send_message_if_lineup_changed(chat_id, chat_title, msg_id, referendum, votes)
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
