@@ -221,7 +221,7 @@ def read_file(file_name, chat_id = 0, msg_id = 0):
 	return msg
 
 def sort_buttons(buttons, votes, rfr_type):
-	buttons_sorted = [] 
+	buttons_sorted = []
 
 	for button_id in buttons:
 		button_votes = len(votes[button_id]['players']) + len(votes[button_id]['queue'])
@@ -258,6 +258,8 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
+		self.dp.register_message_handler(self.cmd_ban, commands = "ban")
+		self.dp.register_message_handler(self.cmd_unban, commands = "unban")
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
 		self.dp.register_message_handler(self.cmd_notifyq, commands = "notifyq")
@@ -603,6 +605,48 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
+	async def cmd_ban(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		args = message.get_args()
+
+		user_name = ''
+
+		if args:
+			user_id = int(args)
+
+			player = db.get_regular_player_db(chat_id, user_id)
+
+			if player:
+				user_name = player['user_name']
+			
+			db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = config.PLAYER_TYPE_BANNED)
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} banned player {user_name}({user_id})")
+
+		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_unban(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		args = message.get_args().split("|")
+
+		user_name = ''
+
+		if args:
+			user_id = int(args)
+
+			player = db.get_regular_player_db(chat_id, user_id)
+
+			if player:
+				user_name = player['user_name']
+			
+			db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = config.PLAYER_TYPE_USUAL)
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} unbanned player {user_name}({user_id})")
+
+		await self.bot.delete_message(chat_id, msg_id)
+
 	async def cmd_del_regular_player(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
@@ -797,33 +841,34 @@ class MyBot:
 		user_name = get_username(cbq.from_user)
 		button_id = int(callback_data['button'])
 		chat_title = cbq.message.chat.title
+		member = await self.bot.get_chat_member(chat_id, user_id)
+		action = ''
+		player_type = db.get_player_type(chat_id, user_id)
+
+		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = get_username(member['user']), player_type = player_type)
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
 
-		action = db.set_vote_db(chat_id = chat_id,
-								msg_id = msg_id,
-								user_id = user_id,
-								user_name = user_name,
-								button_id = button_id)
+		if player_type != config.PLAYER_TYPE_BANNED:
+			action = db.set_vote_db(chat_id = chat_id,
+									msg_id = msg_id,
+									user_id = user_id,
+									user_name = user_name,
+									button_id = button_id)
 
-		member = await self.bot.get_chat_member(chat_id, user_id)
+			msg = await self.update_message(cbq.message.chat, msg_id)
+			keyboard = self.get_keyboard(chat_id, msg_id)
 
-		player_type = db.is_regular_player(chat_id, user_id)
-		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = get_username(member['user']), player_type = player_type)
+			with suppress(MessageNotModified):
+				await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
+			await cbq.answer()
 
-		msg = await self.update_message(cbq.message.chat, msg_id)
-		keyboard = self.get_keyboard(chat_id, msg_id)
+			log_msg = f"chat_id={chat_id}({chat_title}), msg_id={msg_id}, user {user_name} {action}, button {int(callback_data['button'])}"
+			logging.info(log_msg)
 
-		with suppress(MessageNotModified):
-			await cbq.message.edit_text(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
-		await cbq.answer()
-
-		log_msg = f"chat_id={chat_id}({chat_title}), msg_id={msg_id}, user {user_name} {action}, button {int(callback_data['button'])}"
-		logging.info(log_msg)
-
-		await self.send_message_if_voted(chat_id, chat_title, msg_id, referendum, user_name, button_id)
-		await self.send_message_if_lineup_changed(chat_id, chat_title, msg_id, referendum, votes)
+			await self.send_message_if_voted(chat_id, chat_title, msg_id, referendum, user_name, button_id)
+			await self.send_message_if_lineup_changed(chat_id, chat_title, msg_id, referendum, votes)
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
@@ -900,7 +945,7 @@ class MyBot:
 				button_1_votes = button_votes
 
 				for usr in votes[1]['players']:
-					if db.is_regular_player(chat_id, usr['user_id']):
+					if db.get_player_type(chat_id, usr['user_id']) == config.PLAYER_TYPE_REGULAR:
 						regular_players += 1
 					else:
 						other_players +=1
@@ -937,7 +982,7 @@ class MyBot:
 				userlist = []
 				for usr in votes[button_id]['players']:
 					if flag_game_game2:
-						if flag_regular_used == False or db.is_regular_player(chat_id, usr['user_id']):
+						if flag_regular_used == False or db.get_player_type(chat_id, usr['user_id']) == config.PLAYER_TYPE_REGULAR:
 							sym = ''
 						else:
 							sym = '_'
@@ -951,7 +996,7 @@ class MyBot:
 					userlist = []
 					for usr in votes[button_id]['queue']:
 						if flag_game_game2:
-							if flag_regular_used == False or db.is_regular_player(chat_id, usr['user_id']):
+							if flag_regular_used == False or db.get_player_type(chat_id, usr['user_id']) == config.PLAYER_TYPE_REGULAR:
 								sym = ''
 							else:
 								sym = '_'
@@ -971,7 +1016,7 @@ class MyBot:
 							msg += f"{plur} от\\:\n"
 
 						for user_id in friends:
-							if flag_regular_used == False or db.is_regular_player(chat_id, user_id):
+							if flag_regular_used == False or db.get_player_type(chat_id, user_id) == config.PLAYER_TYPE_REGULAR:
 								sym = ''
 							else:
 								sym = '_'
