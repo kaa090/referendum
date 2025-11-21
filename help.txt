@@ -11,6 +11,8 @@
 /get_reg
 /set_reg user_id|player_type
 /del_reg user_id_1|user_id_2|...|user_id_N
+/ban user_id
+/unban user_id
 /get_silent msg_id*
 /notify msg_id*|текст
 /notifyq msg_id*|текст
