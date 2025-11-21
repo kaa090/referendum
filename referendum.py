@@ -563,11 +563,12 @@ class MyBot:
 
 			players = db.get_regular_players_db(chat_id, player_type)
 
+			msg.append(f"{{{chat_id}({message.chat.title}}}")
 			for p in players:
-				msg.append(f"{{{chat_id}({message.chat.title}), player_type = {p['player_type']}, user_id = {p['user_id']} ({p['user_name']})}}")
+				msg.append(f"{{player_type = {p['player_type']}, user_id = {p['user_id']} ({p['user_name']})}}")
 
 			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4094:]))
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
 			else:
 				await self.bot.send_message(message.from_user.id, f"There're no regular players in \"{message.chat.title}\" now")
 
