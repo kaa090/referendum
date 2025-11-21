@@ -629,7 +629,7 @@ class MyBot:
 	async def cmd_unban(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
-		args = message.get_args().split("|")
+		args = message.get_args()
 
 		user_name = ''
 
