@@ -60,6 +60,16 @@ def create_tables():
 	''')
 
 	cur.execute('''
+		CREATE table if not exists whatsapp_players(
+			chat_id integer,
+			msg_id integer,
+			datum text,
+			user_id integer,
+			whatsapp_name text,			
+			primary key(chat_id, user_id, datum))
+	''')
+
+	cur.execute('''
 		CREATE table if not exists timers(
 			chat_id integer,
 			msg_id integer,
@@ -492,6 +502,7 @@ def drop_tables():
 	cur.execute('drop table if exists rfr_buttons')
 	cur.execute('drop table if exists rfr_log')
 	cur.execute('drop table if exists regular_players')
+	cur.execute('drop table if exists whatsapp_players')
 
 	con.commit()
 	con.close()
@@ -576,21 +587,6 @@ def print_tabs(*args):
 		for row in rows:
 			print(row)
 
-		print('rfr_buttons')
-		rows = select_all('rfr_buttons')
-		for row in rows:
-			print(row)
-
-		print('rfr_log')
-		rows = select_all('rfr_log')
-		for row in rows:
-			print(row)
-
-		print('regular_players')
-		rows = select_all('regular_players')
-		for row in rows:
-			print(row)
-
 def is_free_slots(players_queue, buttons, max_num):
 	busy_slots = 0
 
@@ -669,6 +665,54 @@ def get_regular_players_db(chat_id , player_type = -1):
 
 	return players
 
+def get_whatsapp_players_db(chat_id, msg_id):
+	whatsapp_players = []
+
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''
+		SELECT *
+			from whatsapp_players
+			where chat_id = {} and
+				msg_id = {}
+	'''.format(chat_id, msg_id)
+
+	rows = cur.execute(sql).fetchall()
+	con.close()
+
+	for row in rows:
+		whatsapp_players.append({'chat_id': row['chat_id'], 'msg_id': row['msg_id'], 'user_id': row['user_id'], 'whatsapp_name': row['whatsapp_name']})
+
+	return whatsapp_players
+
+def add_whatsapp_player_db(chat_id, msg_id, user_id, whatsapp_name):
+	sql = '''
+		INSERT or replace
+			into whatsapp_players(chat_id, msg_id, datum, user_id, whatsapp_name)
+			values(?, ?, ?, ?, ?)
+	'''
+
+	row = [(chat_id, msg_id, datetime.datetime.now(), user_id, whatsapp_name)]
+	exec_sql(sql, row)
+
+def del_whatsapp_player_db(chat_id, msg_id, user_id, whatsapp_name):
+	sql = '''
+		DELETE
+			from whatsapp_players
+			where
+				chat_id = {} and
+				msg_id	= {} and
+				user_id = {}
+	'''.format(chat_id, msg_id, user_id)
+
+	con = db_connect()
+	cur = con.cursor()
+	cur.execute(sql)
+	con.commit()
+	con.close()
+
 def is_regular_players_used_db(chat_id):
 	con = db_connect()
 	con.row_factory = sqlite3.Row
@@ -721,7 +765,6 @@ def set_regular_player_db(chat_id, user_id, user_name, player_type):
 			values(?, ?, ?, ?)
 	'''
 	row = [(chat_id, user_id, user_name, player_type)]
-
 	exec_sql(sql, row)
 
 def del_regular_player_db(chat_id, user_id):
@@ -739,7 +782,7 @@ def del_regular_player_db(chat_id, user_id):
 	con.commit()
 	con.close()
 
-def is_regular_player(chat_id, user_id):
+def get_player_type(chat_id, user_id):
 	player = get_regular_player_db(chat_id, user_id)
 
 	if player:
