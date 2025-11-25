@@ -23,6 +23,7 @@ def create_tables():
 			status integer,
 			game_cost integer,
 			max_players integer,
+			last_games integer,
 			user_id integer,
 			user_name text,
 			datum text,
@@ -65,7 +66,7 @@ def create_tables():
 			msg_id integer,
 			datum text,
 			user_id integer,
-			whatsapp_name text,			
+			whatsapp_name text,
 			primary key(chat_id, user_id, datum))
 	''')
 
@@ -97,14 +98,15 @@ def exec_sql(sql, vals):
 def create_referendum_db(chat_id, msg_id, user_id, user_name, rfr_type, args):
 	game_cost = args[0]
 	max_players = args[1]
-	title = args[2]
-	buttons = args[3:]
+	last_games = args[2]
+	title = args[3]
+	buttons = args[4:]
 
 	sql = '''
-		INSERT into referendums(chat_id, msg_id, title, rfr_type, status, game_cost, max_players, user_id, user_name, datum)
-			values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT into referendums(chat_id, msg_id, title, rfr_type, status, game_cost, max_players, last_games, user_id, user_name, datum)
+			values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	'''
-	row = [(chat_id, msg_id, title, rfr_type, 1, game_cost, max_players, user_id, user_name, datetime.datetime.now())]
+	row = [(chat_id, msg_id, title, rfr_type, 1, game_cost, max_players, last_games, user_id, user_name, datetime.datetime.now())]
 	exec_sql(sql, row)
 
 	sql = '''
@@ -128,17 +130,17 @@ def get_referendums_by_user_id_db(chat_id, user_id, status = -1):
 			SELECT *
 				from referendums
 				where
-					referendums.chat_id = {} and
-					referendums.user_id = {}
+					chat_id = {} and
+					user_id = {}
 		'''.format(chat_id, user_id)
 	else:
 		sql = '''
 			SELECT *
 				from referendums
 				where
-					referendums.chat_id = {} and
-					referendums.status = {} and
-					referendums.user_id = {}
+					chat_id = {} and
+					status = {} and
+					user_id = {}
 		'''.format(chat_id, status, user_id)
 
 	rows = cur.execute(sql).fetchall()
@@ -153,6 +155,7 @@ def get_referendums_by_user_id_db(chat_id, user_id, status = -1):
 		referendum['status'] = row['status']
 		referendum['game_cost'] = row['game_cost']
 		referendum['max_players'] = row['max_players']
+		referendum['last_games'] = row['last_games']
 		referendum['user_id'] = row['user_id']
 		referendum['user_name'] = row['user_name']
 		referendum['datum'] = row['datum']
@@ -172,8 +175,8 @@ def get_referendum_db(chat_id, msg_id):
 		SELECT *
 			from referendums
 			where
-				referendums.chat_id = {} and
-				referendums.msg_id = {}
+				chat_id = {} and
+				msg_id = {}
 	'''.format(chat_id, msg_id)
 
 	row = cur.execute(sql).fetchone()
@@ -185,11 +188,53 @@ def get_referendum_db(chat_id, msg_id):
 		referendum['status'] = row['status']
 		referendum['game_cost'] = row['game_cost']
 		referendum['max_players'] = row['max_players']
+		referendum['last_games'] = row['last_games']
 		referendum['user_id'] = row['user_id']
+		referendum['datum'] = row['datum']
 
 	return referendum
 
+def get_last_N_referendums_db(chat_id, last_games, datum = 0):
+	referendums = []
+
+	con = db_connect()
+	con.row_factory = sqlite3.Row
+	cur = con.cursor()
+
+	sql = '''
+		SELECT *
+			from referendums
+			where
+				chat_id = {} and
+				rfr_type in ({}, {}) and
+				datum < {}
+			order by datum
+			limit {}
+	'''.format(chat_id, config.RFR_GAME, config.RFR_GAME2, f"\'{datum}\'", last_games)
+
+	rows = cur.execute(sql).fetchall()
+	con.close()
+
+	for row in rows:
+		referendum = {}
+
+		referendum['msg_id'] = row['msg_id']
+		referendum['title'] = row['title']
+		referendum['rfr_type'] = row['rfr_type']
+		referendum['status'] = row['status']
+		referendum['game_cost'] = row['game_cost']
+		referendum['max_players'] = row['max_players']
+		referendum['last_games'] = row['last_games']
+		referendum['user_id'] = row['user_id']
+		referendum['user_name'] = row['user_name']
+		referendum['datum'] = row['datum']
+
+		referendums.append(referendum)
+
+	return referendums
+
 def update_referendum_db(chat_id, args):
+	print(args)
 	msg_id = int(args[0])
 
 	if len(args) >= 2:
@@ -219,7 +264,20 @@ def update_referendum_db(chat_id, args):
 		exec_sql(sql, row)
 
 	if len(args) >= 4:
-		title = args[3]
+		last_games = int(args[3])
+
+		sql = '''
+			UPDATE referendums
+				set last_games = ?
+				where
+					chat_id = ? and
+					msg_id = ?
+		'''
+		row = [(last_games, chat_id, msg_id)]
+		exec_sql(sql, row)
+
+	if len(args) >= 5:
+		title = args[4]
 
 		sql = '''
 			UPDATE referendums
@@ -231,8 +289,8 @@ def update_referendum_db(chat_id, args):
 		row = [(title, chat_id, msg_id)]
 		exec_sql(sql, row)
 
-	if len(args) >= 5:
-		buttons = args[4:]
+	if len(args) >= 6:
+		buttons = args[5:]
 		button_id = 1
 
 		for button in buttons:
@@ -357,7 +415,7 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 			exec_sql(sql, row)
 
 		else:
-			for btn_id in (config.BUTTON_ID_YES, 2, 3):
+			for btn_id in (config.BUTTON_ID_YES, config.BUTTON_ID_NO, config.BUTTON_ID_Q):
 				for usr in votes[btn_id]['players'] + votes[btn_id]['queue']:
 					if usr['user_id'] == user_id:
 						sql = '''
@@ -435,10 +493,18 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 	return action
 
 def get_votes_db(chat_id, msg_id):
-	referendum_log = []
-
 	referendum = get_referendum_db(chat_id, msg_id)
+	referendum_log = get_referendum_log(chat_id, msg_id)
 	buttons = get_buttons_db(chat_id, msg_id)
+	players_queue = get_players_queue(referendum_log, buttons, referendum['rfr_type'], referendum['max_players'])
+	
+	if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['last_games'] != 0:		
+		players_queue = add_stat(chat_id, msg_id, referendum['max_players'], referendum['last_games'], players_queue)
+	
+	return players_queue
+
+def get_referendum_log(chat_id, msg_id):
+	referendum_log = []
 
 	con = db_connect()
 	con.row_factory = sqlite3.Row
@@ -468,9 +534,8 @@ def get_votes_db(chat_id, msg_id):
 			referendum_log.append({'button_id': row['button_id'], 'user_id': row['user_id'], 'user_name': row['user_name'], 'datum': row['datum']})
 
 	referendum_log = sorted(referendum_log, key = lambda x: x['datum'])
-	players_queue = get_players_queue(referendum_log, buttons, referendum['rfr_type'], referendum['max_players'])
 
-	return players_queue
+	return referendum_log
 
 def get_buttons_db(chat_id, msg_id):
 	buttons = {}
@@ -522,6 +587,7 @@ def extend_table():
 			status integer,
 			game_cost integer default 0,
 			max_players integer,
+			last_games integer default 0,
 			user_id integer,
 			user_name text,
 			datum text,
@@ -529,8 +595,8 @@ def extend_table():
 
 	cur.execute('''
 		INSERT into referendums(
-					chat_id, msg_id, title, status, game_cost, max_players, user_id, user_name, datum)
-			select chat_id, msg_id, title, status, game_cost, max_players, user_id, user_name, datum
+					chat_id, msg_id, title, rfr_type, status, game_cost, max_players, user_id, user_name, datum)
+			select chat_id, msg_id, title, rfr_type, status, game_cost, max_players, user_id, user_name, datum
 			from _referendums_old
 	''')
 	cur.execute('drop table _referendums_old')
@@ -591,7 +657,7 @@ def is_free_slots(players_queue, buttons, max_num):
 	busy_slots = 0
 
 	for button in buttons:
-		if button == 1:
+		if button == config.BUTTON_ID_YES:
 			busy_slots += len(players_queue[button]['players'])
 
 	if busy_slots + 1 <= max_num:
@@ -610,13 +676,74 @@ def get_players_queue(referendum_log, buttons, rfr_type, max_num):
 
 		if rfr_type in (config.RFR_GAME, config.RFR_GAME2) and button_id == 1 and max_num > 0:
 			if is_free_slots(players_queue, buttons, max_num):
-				players_queue[r['button_id']]['players'].append(r)
+				players_queue[button_id]['players'].append(r)
 			else:
-				players_queue[r['button_id']]['queue'].append(r)
+				players_queue[button_id]['queue'].append(r)
 		elif rfr_type in (config.RFR_GAME, config.RFR_GAME2) and button_id in (4, 5):
 			pass
 		else:
-			players_queue[r['button_id']]['players'].append(r)
+			players_queue[button_id]['players'].append(r)
+
+	return players_queue
+
+def get_players_stats(chat_id, last_games, msg_id = 0):
+	players_stats = []
+	datum = datetime.datetime.max
+
+	if msg_id:
+		referendum = get_referendum_db(chat_id, msg_id)
+		
+		if referendum:			
+			datum = referendum['datum']
+
+	referendums = get_last_N_referendums_db(chat_id, last_games, datum)
+	
+	for r in referendums:
+		one_game_players = []
+		referendum_log = get_referendum_log(chat_id, r['msg_id'])
+
+		for r_log in referendum_log:
+			player_stat = next((item for item in players_stats if item.get('user_id') == r_log['user_id']), None)
+
+			if player_stat:
+			    games = player_stat['games'] + 1
+			else:
+				games = 1
+
+			one_game_player = {'user_id': r_log['user_id'], 'user_name': r_log['user_name'], 'games': games, 'datum': r_log['datum']}
+			one_game_players.append(one_game_player)
+
+		one_game_players = sorted(one_game_players, key = lambda x: (-x['games'], x['datum']))
+		one_game_players = one_game_players[:r['max_players']]
+
+		for p in one_game_players:
+			player_stat = next((item for item in players_stats if item.get('user_id') == p['user_id']), None)
+
+			if player_stat:
+				player_stat['games'] += 1
+			else:
+				player_stat = {'user_id': p['user_id'], 'user_name': p['user_name'], 'games': 1}
+				players_stats.append(player_stat)
+
+	return players_stats
+
+def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
+	players_queue = _players_queue	
+	players_stats = get_players_stats(chat_id, last_games, msg_id)
+	pq_arr = players_queue[config.BUTTON_ID_YES]['players'] + players_queue[config.BUTTON_ID_YES]['queue']	
+	
+	for pq in pq_arr:
+		player_stat = next((item for item in players_stats if item.get('user_id') == pq['user_id']), None)
+
+		if player_stat:
+		    pq['games'] = player_stat['games']
+		else:
+		    pq['games'] = 0
+	
+	pq_arr = sorted(pq_arr, key = lambda x: (-x['games'], x['datum']))
+	
+	players_queue[config.BUTTON_ID_YES]['players'] = pq_arr[:max_players]
+	players_queue[config.BUTTON_ID_YES]['queue'] = pq_arr[max_players:]
 
 	return players_queue
 
