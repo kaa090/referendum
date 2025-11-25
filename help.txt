@@ -8,7 +8,7 @@
 /update msg_id|game_cost|max_players|заголовок|кнопка_1|...|кнопка_N
 /add_btn msg_id|кнопка
 /log msg_id*
-/get_reg
+/get_reg player_type**
 /set_reg user_id|player_type
 /del_reg user_id_1|user_id_2|...|user_id_N
 /ban user_id
@@ -16,4 +16,6 @@
 /get_silent msg_id*
 /notify msg_id*|текст
 /notifyq msg_id*|текст
+/getstat last_games|msg_id**
 * — необязательный параметр, при наличии только одного своего открытого опроса в группе
+** — необязательный параметр
