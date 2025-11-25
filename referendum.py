@@ -24,28 +24,34 @@ def get_morph(my_word):
 
 def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	if cmd == config.RFR_GAME_CMD:
-		if len(args) != 8:
-			return "usage: /game game_cost|max_players|title|button_1_text|...|button_5_text"
+		if len(args) != 9:
+			return "usage: /game game_cost|max_players|last_games|title|button_1_text|...|button_5_text"
 
 		if args[0].isnumeric() == False:
 			return "game_cost should be a number"
 
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
+
+		if args[2].isnumeric() == False:
+			return "last_games should be a number"
 
 	elif cmd == config.RFR_GAME2_CMD:
-		if len(args) != 9:
-			return "usage: /game2 game_cost|max_players|title|button_1_text|...|button_6_text"
+		if len(args) != 10:
+			return "usage: /game2 game_cost|max_players|last_games|title|button_1_text|...|button_6_text"
 
 		if args[0].isnumeric() == False:
 			return "game_cost should be a number"
 
 		if args[1].isnumeric() == False:
 			return "max_players should be a number"
+
+		if args[2].isnumeric() == False:
+			return "last_games should be a number"
 
 	elif cmd == 'update':
 		if len(args) < 2:
-			return "usage: /update msg_id|game_cost|max_players|title|button_1_text|...|button_N_text"
+			return "usage: /update msg_id|game_cost|max_players|last_games|title|button_1_text|...|button_N_text"
 
 		if len(args) >= 1 and args[0].isnumeric() == False:
 			return "msg_id should be a number"
@@ -59,6 +65,8 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 			return "game_cost should be a number"
 		if len(args) >= 3 and args[2].isnumeric() == False:
 			return "max_players should be a number"
+		if len(args) >= 4 and args[3].isnumeric() == False:
+			return "last_games should be a number"
 
 	elif cmd in ('open', 'close', 'log'):
 		if args and args.isnumeric() == False or args == '' and msg_id == 0 or args == '' and cmd == 'open':
@@ -71,6 +79,12 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 			return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
 		if db.check_user_id(chat_id, msg_id, user_id) == False:
 			return "this is not your referendum!"
+
+	elif cmd == 'getstat':
+		if len(args) == 1 and args[0].isnumeric() == True or len(args) == 2 and args[0].isnumeric() == True and args[1].isnumeric() == True:
+			pass
+		else:
+			return "usage: /getstat last_games|msg_id*"
 
 	elif cmd in ('get', 'get_reg'):
 		if args and args.isnumeric() == False:
@@ -255,6 +269,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
+		self.dp.register_message_handler(self.cmd_get_stat, commands = "getstat")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
@@ -263,7 +278,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_get_silent, commands = "get_silent")
 		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
 		self.dp.register_message_handler(self.cmd_notifyq, commands = "notifyq")
-		self.dp.register_message_handler(self.cmd_extend_table, commands = "extend_tab")
+		self.dp.register_message_handler(self.cmd_extend_table, commands = "exttab")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
@@ -305,7 +320,8 @@ class MyBot:
 		if rfr_type == config.RFR_SINGLE or rfr_type == config.RFR_MULTI:
 			game_cost = 0
 			max_players = 0
-			args = [game_cost] + [max_players] + args
+			last_games = 0
+			args = [game_cost] + [max_players] + [last_games] + args
 
 		if rfr_type == config.RFR_GAME:
 			check_type = config.RFR_GAME_CMD
@@ -350,7 +366,7 @@ class MyBot:
 		msg = []
 		status = -1
 
-		msg_err = check_input(cmd = 'get', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(cmd = 'get', args = args)
 
 		if msg_err == '':
 			if args:
@@ -547,6 +563,39 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
+	async def cmd_get_stat(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg_err = check_input(cmd = 'getstat', args = args)
+
+		if msg_err == '':
+			last_games = int(args[0])
+
+			if len(args) == 2:
+				msg_id = args[1]
+			else:
+				msg_id = 0
+
+			stat = db.get_players_stats(chat_id, last_games, msg_id)
+
+			msg.append(f"{message.chat.title}")
+			
+			for s in stat:
+				msg.append(f"{s['user_name']} - {s['games']}")
+
+			if msg:
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
+			else:
+				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует")
+
+		else:
+			await self.bot.send_message(message.from_user.id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
 	async def cmd_get_regular_players(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
@@ -555,7 +604,7 @@ class MyBot:
 
 		msg = []
 		player_type = -1
-		msg_err = check_input(cmd = 'get_reg', args = args, chat_id = 0, msg_id = 0, user_id = 0)
+		msg_err = check_input(cmd = 'get_reg', args = args)
 
 		if msg_err == '':
 			if args:
@@ -563,7 +612,7 @@ class MyBot:
 
 			players = db.get_regular_players_db(chat_id, player_type)
 
-			msg.append(f"{{{chat_id}({message.chat.title}}}")
+			msg.append(f"{{{chat_id}({message.chat.title})}}")
 			for p in players:
 				msg.append(f"{{player_type = {p['player_type']}, user_id = {p['user_id']} ({p['user_name']})}}")
 
@@ -609,42 +658,55 @@ class MyBot:
 	async def cmd_ban(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		user_id = message.from_user.id
 		args = message.get_args()
 
-		user_name = ''
+		member = await self.bot.get_chat_member(chat_id, user_id)
 
-		if args:
-			user_id = int(args)
+		if member['status'] in ('administrator', 'creator'):
+			user_name = ''
 
-			player = db.get_regular_player_db(chat_id, user_id)
+			if args:
+				user_id_ban = int(args)
 
-			if player:
-				user_name = player['user_name']
-			
-			db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = config.PLAYER_TYPE_BANNED)
+				player = db.get_regular_player_db(chat_id, user_id_ban)
 
-			logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} banned player {user_name}({user_id})")
+				if player:
+					user_name = player['user_name']
+
+				db.set_regular_player_db(chat_id = chat_id, user_id = user_id_ban, user_name = user_name, player_type = config.PLAYER_TYPE_BANNED)
+
+				await self.send_message_if_banned(message.chat.title, user_id, user_id_ban, user_name, msg_type = "ban")
+
+				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} banned player {user_name}({user_id_ban})")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_unban(self, message: types.Message):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		user_id = message.from_user.id
 		args = message.get_args()
 
-		user_name = ''
+		member = await self.bot.get_chat_member(chat_id, user_id)
 
-		if args:
-			user_id = int(args)
+		if member['status'] in ('administrator', 'creator'):
 
-			player = db.get_regular_player_db(chat_id, user_id)
+			user_name = ''
 
-			if player:
-				user_name = player['user_name']
-			
-			db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = user_name, player_type = config.PLAYER_TYPE_USUAL)
+			if args:
+				user_id_ban = int(args)
 
-			logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} unbanned player {user_name}({user_id})")
+				player = db.get_regular_player_db(chat_id, user_id_ban)
+
+				if player:
+					user_name = player['user_name']
+
+				db.set_regular_player_db(chat_id = chat_id, user_id = user_id_ban, user_name = user_name, player_type = config.PLAYER_TYPE_USUAL)
+
+				await self.send_message_if_banned(message.chat.title, user_id, user_id_ban, user_name, msg_type = "unban")
+
+				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} unbanned player {user_name}({user_id_ban})")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
@@ -764,7 +826,7 @@ class MyBot:
 		msg_id = message.message_id
 
 		db.extend_table()
-		db.drop_table_column()
+		# db.drop_table_column()
 
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
@@ -834,6 +896,20 @@ class MyBot:
 			msg = f"Участник {user_name} нажал кнопку {buttons[button_id]['button_text']}"
 			msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 			await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+
+	async def send_message_if_banned(self, chat_title, user_id, user_id_ban, user_name, msg_type):
+		if msg_type == "ban":
+			msg     = f"Вы запретили {user_name} нажимать кнопки, user_id = {user_id_ban}"
+			msg_ban = f"Установлено ограничение на нажатие кнопок в группе."
+		elif msg_type == "unban":
+			msg     = f"Вы разрешили {user_name} нажимать кнопки, user_id = {user_id_ban}"
+			msg_ban = f"Ограничение на нажатие кнопок в группе снято."        
+
+		if msg_type in ("ban", "unban"):        
+			msg     = f"<b>Группа:</b> \"{chat_title}\"\n{msg}"
+			msg_ban = f"<b>Группа:</b> \"{chat_title}\"\n{msg_ban}"
+			await self.bot.send_message(user_id,     msg,     parse_mode='HTML')
+			await self.bot.send_message(user_id_ban, msg_ban, parse_mode='HTML')
 
 	async def process_callback(self, cbq: types.CallbackQuery, callback_data: dict):
 		chat_id = cbq.message.chat.id
@@ -918,9 +994,9 @@ class MyBot:
 
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
 			flag_game_game2 = True
+
 			if db.is_regular_players_used_db(chat_id):
 				flag_regular_used = True
-
 		else:
 			flag_game_game2 = False
 
