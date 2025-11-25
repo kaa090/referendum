@@ -725,6 +725,7 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 				player_stat = {'user_id': p['user_id'], 'user_name': p['user_name'], 'games': 1}
 				players_stats.append(player_stat)
 
+	players_stats = sorted(players_stats, key = lambda x: (-x['games']))
 	return players_stats
 
 def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
