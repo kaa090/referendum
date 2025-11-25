@@ -569,6 +569,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
+		msg = []		
 		msg_err = check_input(cmd = 'getstat', args = args)
 
 		if msg_err == '':
