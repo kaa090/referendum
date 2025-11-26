@@ -602,6 +602,7 @@ class MyBot:
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 
 			msg.append(f"{message.chat.title}")
+			msg.append(f"Статистика за {last_games} игр:")
 
 			for s in stat:
 				msg.append(f"{s['user_name']} - {s['games']}")
@@ -737,6 +738,14 @@ class MyBot:
 									user_id = user_id_vote,
 									user_name = user_name,
 									button_id = button_id)
+				
+				referendum = db.get_referendum_db(chat_id, msg_id_rfr)
+				msg_rfr = await self.update_message(message.chat, msg_id_rfr)
+				if referendum['status']:
+					keyboard = self.get_keyboard(chat_id, msg_id_rfr)
+				else:
+					keyboard = None
+				await self.bot.edit_message_text(msg_rfr, chat_id = chat_id, message_id = msg_id_rfr + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
 
 				msg = f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} {action} for player {user_name}, button {button_id}"
 				logging.info(msg)
