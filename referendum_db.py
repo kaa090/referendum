@@ -208,7 +208,7 @@ def get_last_N_referendums_db(chat_id, last_games, datum = 0):
 				chat_id = {} and
 				rfr_type in ({}, {}) and
 				datum < {}
-			order by datum
+			order by datum desc
 			limit {}
 	'''.format(chat_id, config.RFR_GAME, config.RFR_GAME2, f"\'{datum}\'", last_games)
 
@@ -234,7 +234,6 @@ def get_last_N_referendums_db(chat_id, last_games, datum = 0):
 	return referendums
 
 def update_referendum_db(chat_id, args):
-	print(args)
 	msg_id = int(args[0])
 
 	if len(args) >= 2:
@@ -497,10 +496,10 @@ def get_votes_db(chat_id, msg_id):
 	referendum_log = get_referendum_log(chat_id, msg_id)
 	buttons = get_buttons_db(chat_id, msg_id)
 	players_queue = get_players_queue(referendum_log, buttons, referendum['rfr_type'], referendum['max_players'])
-	
-	if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['last_games'] != 0:		
+
+	if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and referendum['last_games'] != 0:
 		players_queue = add_stat(chat_id, msg_id, referendum['max_players'], referendum['last_games'], players_queue)
-	
+
 	return players_queue
 
 def get_referendum_log(chat_id, msg_id):
@@ -692,17 +691,20 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 
 	if msg_id:
 		referendum = get_referendum_db(chat_id, msg_id)
-		
-		if referendum:			
+
+		if referendum:
 			datum = referendum['datum']
 
 	referendums = get_last_N_referendums_db(chat_id, last_games, datum)
-	
+
 	for r in referendums:
 		one_game_players = []
 		referendum_log = get_referendum_log(chat_id, r['msg_id'])
 
 		for r_log in referendum_log:
+			if r_log['button_id'] != config.BUTTON_ID_YES:
+				continue
+
 			player_stat = next((item for item in players_stats if item.get('user_id') == r_log['user_id']), None)
 
 			if player_stat:
@@ -729,10 +731,10 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 	return players_stats
 
 def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
-	players_queue = _players_queue	
+	players_queue = _players_queue
 	players_stats = get_players_stats(chat_id, last_games, msg_id)
-	pq_arr = players_queue[config.BUTTON_ID_YES]['players'] + players_queue[config.BUTTON_ID_YES]['queue']	
-	
+	pq_arr = players_queue[config.BUTTON_ID_YES]['players'] + players_queue[config.BUTTON_ID_YES]['queue']
+
 	for pq in pq_arr:
 		player_stat = next((item for item in players_stats if item.get('user_id') == pq['user_id']), None)
 
@@ -740,9 +742,9 @@ def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
 		    pq['games'] = player_stat['games']
 		else:
 		    pq['games'] = 0
-	
+
 	pq_arr = sorted(pq_arr, key = lambda x: (-x['games'], x['datum']))
-	
+
 	players_queue[config.BUTTON_ID_YES]['players'] = pq_arr[:max_players]
 	players_queue[config.BUTTON_ID_YES]['queue'] = pq_arr[max_players:]
 
