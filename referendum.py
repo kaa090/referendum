@@ -608,9 +608,9 @@ class MyBot:
 				msg.append(f"{s['user_name']} - {s['games']}")
 
 			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
 			else:
-				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует")
+				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует", parse_mode='HTML')
 
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
@@ -644,9 +644,9 @@ class MyBot:
 				msg.append('\n'.join(player_stat['datums']))
 			
 			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
 			else:
-				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует")
+				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует", parse_mode='HTML')
 
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
