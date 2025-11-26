@@ -28,57 +28,57 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 			return "usage: /game game_cost|max_players|last_games|title|button_1_text|...|button_5_text"
 
 		if args[0].isnumeric() == False:
-			return "game_cost should be a number"
+			return "game_cost должно быть числом"
 
 		if args[1].isnumeric() == False:
-			return "max_players should be a number"
+			return "max_players должно быть числом"
 
 		if args[2].isnumeric() == False:
-			return "last_games should be a number"
+			return "last_games должно быть числом"
 
 	elif cmd == config.RFR_GAME2_CMD:
 		if len(args) != 10:
 			return "usage: /game2 game_cost|max_players|last_games|title|button_1_text|...|button_6_text"
 
 		if args[0].isnumeric() == False:
-			return "game_cost should be a number"
+			return "game_cost должно быть числом"
 
 		if args[1].isnumeric() == False:
-			return "max_players should be a number"
+			return "max_players должно быть числом"
 
 		if args[2].isnumeric() == False:
-			return "last_games should be a number"
+			return "last_games должно быть числом"
 
 	elif cmd == 'update':
 		if len(args) < 2:
 			return "usage: /update msg_id|game_cost|max_players|last_games|title|button_1_text|...|button_N_text"
 
 		if len(args) >= 1 and args[0].isnumeric() == False:
-			return "msg_id should be a number"
+			return "msg_id должно быть числом"
 		else:
 			msg_id = int(args[0])
 			if db.check_msg_id(chat_id, msg_id) == False:
-				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+				return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 			if db.check_user_id(chat_id, msg_id, user_id) == False:
-				return "this is not your referendum!"
+				return "Чужой опрос!"
 		if len(args) >= 2 and args[1].isnumeric() == False:
-			return "game_cost should be a number"
+			return "game_cost должно быть числом"
 		if len(args) >= 3 and args[2].isnumeric() == False:
-			return "max_players should be a number"
+			return "max_players должно быть числом"
 		if len(args) >= 4 and args[3].isnumeric() == False:
-			return "last_games should be a number"
+			return "last_games должно быть числом"
 
 	elif cmd in ('open', 'close', 'log'):
 		if args and args.isnumeric() == False or args == '' and msg_id == 0 or args == '' and cmd == 'open':
-			return "msg_id should be a number"
+			return "msg_id должно быть числом"
 
 		if args:
 			msg_id = int(args)
 
 		if db.check_msg_id(chat_id, msg_id) == False:
-			return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+			return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 		if db.check_user_id(chat_id, msg_id, user_id) == False:
-			return "this is not your referendum!"
+			return "Чужой опрос!"
 
 	elif cmd == 'getstat':
 		if len(args) == 1 and args[0].isnumeric() == True or len(args) == 2 and args[0].isnumeric() == True and args[1].isnumeric() == True:
@@ -88,14 +88,14 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 	elif cmd in ('get', 'get_reg'):
 		if args and args.isnumeric() == False:
-			return "1 - for active, 0 - for closed, nothing - for all"
+			return "1 - открытый, 0 - закрытый, пусто - все"
 
 	elif cmd == 'set_reg':
 		if len(args) not in (2, 3):
 			return "usage: /set_reg user_id|player_type"
 
 		if args[0].isnumeric() == False or args[1].isnumeric() == False:
-			return "user_id and player_type should be a number"
+			return "user_id и player_type должно быть числом"
 
 	elif cmd == 'del_reg':
 		users_id = args
@@ -105,7 +105,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 		for uid in users_id:
 			if uid.isnumeric() == False:
-				return "user_id should be a number"
+				return "user_id должно быть числом"
 
 	elif cmd == 'add_btn':
 		if len(args) != 2:
@@ -114,11 +114,11 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if args[0].isnumeric():
 			msg_id = int(args[0])
 			if db.check_msg_id(chat_id, msg_id) == False:
-				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+				return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 			if db.check_user_id(chat_id, msg_id, user_id) == False:
-				return "this is not your referendum!"
+				return "Чужой опрос!"
 		else:
-			return "msg_id should be a number"
+			return "msg_id должно быть числом"
 
 	elif cmd == 'cron':
 		if len(args) < 4:
@@ -136,13 +136,13 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 	elif cmd == 'get_silent':
 		if args:
 			if args.isnumeric() == False:
-				return "msg_id should be a number"
+				return "msg_id должно быть числом"
 
 			msg_id = int(args)
 			if db.check_msg_id(chat_id, msg_id) == False:
-				return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+				return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 			if db.check_user_id(chat_id, msg_id, user_id) == False:
-				return "this is not your referendum!"
+				return "Чужой опрос!"
 		else:
 			if msg_id == 0:
 				return "usage: /get_silent msg_id"
@@ -152,26 +152,26 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 				return "usage: /notify msg_id*|text"
 		elif len(args) > 1:
 			if args[0].isnumeric() == False:
-				return "msg_id should be a number"
+				return "msg_id должно быть числом"
 			else:
 				msg_id = int(args[0])
 				if db.check_msg_id(chat_id, msg_id) == False:
-					return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+					return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 				if db.check_user_id(chat_id, msg_id, user_id) == False:
-					return "this is not your referendum!"
+					return "Чужой опрос!"
 
 	elif cmd == 'notifyq':
 		if len(args) == 1 and msg_id == 0:
 				return "usage: /notifyq msg_id*|text"
 		elif len(args) > 1:
 			if args[0].isnumeric() == False:
-				return "msg_id should be a number"
+				return "msg_id должно быть числом"
 			else:
 				msg_id = int(args[0])
 				if db.check_msg_id(chat_id, msg_id) == False:
-					return f"msg_id = {msg_id} not exists in chat_id = {chat_id}"
+					return f"msg_id = {msg_id} не существует в chat_id = {chat_id}"
 				if db.check_user_id(chat_id, msg_id, user_id) == False:
-					return "this is not your referendum!"
+					return "Чужой опрос!"
 
 	return ''
 
@@ -290,7 +290,7 @@ class MyBot:
 		msg_id_del = message.message_id
 		user_id = message.from_user.id
 
-		await self.bot.send_message(user_id, f"Hello! Your Telegram ID is {user_id}")
+		await self.bot.send_message(user_id, f"Привет! Твой telegram ID = {user_id}")
 		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_help(self, message: types.Message):
@@ -348,7 +348,7 @@ class MyBot:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 				await self.bot.delete_message(chat_id, msg_id + 2)
 			except:
-				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
+				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, недостаточно прав для управления закреплёнными сообщениями"
 				await self.bot.send_message(message.from_user.id, msg_err)
 				logging.error(msg_err)
 
@@ -374,14 +374,15 @@ class MyBot:
 
 			referendums = db.get_referendums_by_user_id_db(chat_id, user_id, status)
 
+			msg.append(f"{chat_id}({message.chat.title})")
+
 			for r in referendums:
-				msg.append(f"""{{{chat_id}({message.chat.title}), msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}
-					""")
+				msg.append(f"{{msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}")
 
 			if msg:
 				msg = '\n'.join(msg)
 			else:
-				msg = f"There're no referendums in \"{message.chat.title}\""
+				msg = f"В группе \"{message.chat.title}\" нет опросов"
 
 			await self.bot.send_message(user_id, msg[-4096:])
 		else:
@@ -430,7 +431,7 @@ class MyBot:
 					await self.bot.pin_chat_message(chat_id, msg_id + 1)
 					await self.bot.delete_message(chat_id, msg_id_del + 1)
 				except:
-					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, not enough rights to manage pinned messages in the chat"
+					msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, недостаточно прав для управления закреплёнными сообщениями"
 					logging.error(msg_err)
 			else:
 				await self.bot.unpin_chat_message(chat_id, msg_id + 1)
@@ -487,7 +488,7 @@ class MyBot:
 
 				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} added button {button_text}")
 			else:
-				await self.bot.send_message(message.from_user.id, f"Unable to add button. Type of referendum is GAME")
+				await self.bot.send_message(message.from_user.id, f"Невозможно добавить кнопку, тип опроса GAME")
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
 
@@ -569,7 +570,7 @@ class MyBot:
 		user_id = message.from_user.id
 		args = message.get_args().split("|")
 
-		msg = []		
+		msg = []
 		msg_err = check_input(cmd = 'getstat', args = args)
 
 		if msg_err == '':
@@ -583,7 +584,7 @@ class MyBot:
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 
 			msg.append(f"{message.chat.title}")
-			
+
 			for s in stat:
 				msg.append(f"{s['user_name']} - {s['games']}")
 
@@ -620,7 +621,7 @@ class MyBot:
 			if msg:
 				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
 			else:
-				await self.bot.send_message(message.from_user.id, f"There're no regular players in \"{message.chat.title}\" now")
+				await self.bot.send_message(message.from_user.id, f"В группе \"{message.chat.title}\" нет регулярных игроков")
 
 		if msg_err:
 			await self.bot.send_message(user_id, msg_err)
@@ -680,6 +681,8 @@ class MyBot:
 				await self.send_message_if_banned(message.chat.title, user_id, user_id_ban, user_name, msg_type = "ban")
 
 				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} banned player {user_name}({user_id_ban})")
+		else:
+			await self.bot.send_message(user_id, f"Банить может только администратор")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
@@ -708,6 +711,8 @@ class MyBot:
 				await self.send_message_if_banned(message.chat.title, user_id, user_id_ban, user_name, msg_type = "unban")
 
 				logging.info(f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} unbanned player {user_name}({user_id_ban})")
+		else:
+			await self.bot.send_message(user_id, f"Разбанить может только администратор")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
@@ -738,7 +743,7 @@ class MyBot:
 			else:
 				await self.bot.send_message(user_id, msg_err)
 		else:
-			await self.bot.send_message(user_id, "Only administrator can delete users")
+			await self.bot.send_message(user_id, "Удалять может только администратор")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
@@ -768,7 +773,7 @@ class MyBot:
 			if msg:
 				await self.bot.send_message(message.from_user.id, '\n'.join(msg))
 			else:
-				await self.bot.send_message(message.from_user.id, f"There're no silent members in \"{message.chat.title}\" now")
+				await self.bot.send_message(message.from_user.id, f"В группе \"{message.chat.title}\" нет молчунов")
 		else:
 			await self.bot.send_message(user_id, msg_err)
 
@@ -904,9 +909,9 @@ class MyBot:
 			msg_ban = f"Установлено ограничение на нажатие кнопок в группе."
 		elif msg_type == "unban":
 			msg     = f"Вы разрешили {user_name} нажимать кнопки, user_id = {user_id_ban}"
-			msg_ban = f"Ограничение на нажатие кнопок в группе снято."        
+			msg_ban = f"Ограничение на нажатие кнопок в группе снято."
 
-		if msg_type in ("ban", "unban"):        
+		if msg_type in ("ban", "unban"):
 			msg     = f"<b>Группа:</b> \"{chat_title}\"\n{msg}"
 			msg_ban = f"<b>Группа:</b> \"{chat_title}\"\n{msg_ban}"
 			await self.bot.send_message(user_id,     msg,     parse_mode='HTML')
