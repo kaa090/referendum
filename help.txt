@@ -16,7 +16,8 @@
 /get_silent msg_id*
 /notify msg_id*|текст
 /notifyq msg_id*|текст
-/getstat last_games|msg_id**
+/statall last_games|msg_id**
+/statuser user_id|last_games|msg_id**
 *   — необязательный параметр, при наличии только одного своего открытого опроса в группе
 **  — необязательный параметр
 *** — обязательный параметр; если не используется, указать 0
