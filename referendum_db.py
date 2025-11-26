@@ -708,7 +708,7 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 			player_stat = next((item for item in players_stats if item.get('user_id') == r_log['user_id']), None)
 
 			if player_stat:
-			    games = player_stat['games'] + 1
+				games = player_stat['games'] + 1
 			else:
 				games = 1
 
@@ -723,13 +723,15 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 		if r['max_players']:
 			one_game_players = one_game_players[:r['max_players']]
 
+
 		for p in one_game_players:
 			player_stat = next((item for item in players_stats if item.get('user_id') == p['user_id']), None)
 
 			if player_stat:
 				player_stat['games'] += 1
+				player_stat['datums'].append(r['datum'])
 			else:
-				player_stat = {'user_id': p['user_id'], 'user_name': p['user_name'], 'games': 1}
+				player_stat = {'user_id': p['user_id'], 'user_name': p['user_name'], 'games': 1, 'datums': [r['datum']]}
 				players_stats.append(player_stat)
 
 	players_stats = sorted(players_stats, key = lambda x: (-x['games']))
@@ -744,9 +746,9 @@ def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
 		player_stat = next((item for item in players_stats if item.get('user_id') == pq['user_id']), None)
 
 		if player_stat:
-		    pq['games'] = player_stat['games']
+			pq['games'] = player_stat['games']
 		else:
-		    pq['games'] = 0
+			pq['games'] = 0
 
 	pq_arr = sorted(pq_arr, key = lambda x: (-x['games'], x['datum']))
 
