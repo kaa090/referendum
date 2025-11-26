@@ -80,11 +80,19 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 		if db.check_user_id(chat_id, msg_id, user_id) == False:
 			return "Чужой опрос!"
 
-	elif cmd == 'getstat':
+	elif cmd == 'statall':
 		if len(args) == 1 and args[0].isnumeric() == True or len(args) == 2 and args[0].isnumeric() == True and args[1].isnumeric() == True:
 			pass
 		else:
-			return "usage: /getstat last_games|msg_id*"
+			return "usage: /statall last_games|msg_id*"
+
+	elif cmd == 'statuser':
+		if len(args) < 2 or len(args) > 3:
+			return "usage: /statuser user_id|last_games|msg_id*"
+
+		for arg in args:
+			if arg.isnumeric() == False:
+				return "user_id, last_games, msg_id* должны быть числами"		
 
 	elif cmd in ('get', 'get_reg'):
 		if args and args.isnumeric() == False:
@@ -113,7 +121,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 		for arg in args:
 			if arg.isnumeric() == False:
-				return "msg_id, user_id, button_id должны быть числом"
+				return "msg_id, user_id, button_id должны быть числами"
 
 	elif cmd == 'add_btn':
 		if len(args) != 2:
@@ -277,7 +285,8 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
 		self.dp.register_message_handler(self.cmd_log, commands = "log")
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
-		self.dp.register_message_handler(self.cmd_get_stat, commands = "getstat")
+		self.dp.register_message_handler(self.cmd_get_stat, commands = "statall")
+		self.dp.register_message_handler(self.cmd_get_stat_user, commands = "statuser")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
@@ -580,7 +589,7 @@ class MyBot:
 		args = message.get_args().split("|")
 
 		msg = []
-		msg_err = check_input(cmd = 'getstat', args = args)
+		msg_err = check_input(cmd = 'statall', args = args)
 
 		if msg_err == '':
 			last_games = int(args[0])
@@ -597,6 +606,41 @@ class MyBot:
 			for s in stat:
 				msg.append(f"{s['user_name']} - {s['games']}")
 
+			if msg:
+				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
+			else:
+				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует")
+
+		else:
+			await self.bot.send_message(message.from_user.id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id_del)
+
+	async def cmd_get_stat_user(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg = []
+		msg_err = check_input(cmd = 'statuser', args = args)
+
+		if msg_err == '':
+			user_id_stat = int(args[0]) 
+			last_games = int(args[1])
+
+			if len(args) == 3:
+				msg_id = args[2]
+			else:
+				msg_id = 0
+
+			stat = db.get_players_stats(chat_id, last_games, msg_id)
+			player_stat = next((item for item in stat if item.get('user_id') == user_id_stat), None)			
+			if player_stat:				
+				msg.append(f"{message.chat.title}")
+				msg.append(f"{player_stat['user_name']} - {player_stat['games']}")
+				msg.append('\n'.join(player_stat['datums']))
+			
 			if msg:
 				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]))
 			else:
