@@ -601,7 +601,7 @@ class MyBot:
 
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 
-			msg.append(f"Группа: {message.chat.title}\n")
+			msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
 			msg.append(f"Статистика за {last_games} опросов:\n")
 
 			for s in stat:
@@ -638,7 +638,7 @@ class MyBot:
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 			player_stat = next((item for item in stat if item.get('user_id') == user_id_stat), None)			
 			if player_stat:				
-				msg.append(f"Группа: {message.chat.title}\n")
+				msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
 				msg.append(f"Статистика за {last_games} опросов:\n")
 				msg.append(f"{player_stat['user_name']} - {player_stat['games']}")
 				msg.append('\n'.join(player_stat['datums']))
