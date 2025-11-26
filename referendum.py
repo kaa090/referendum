@@ -107,6 +107,14 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 			if uid.isnumeric() == False:
 				return "user_id должно быть числом"
 
+	elif cmd == 'vote':
+		if len(args) != 3:
+			return "usage: /vote msg_id|user_id|button_id"
+
+		for arg in args:
+			if arg.isnumeric() == False:
+				return "msg_id, user_id, button_id должны быть числом"
+
 	elif cmd == 'add_btn':
 		if len(args) != 2:
 			return "usage: /add_btn msg_id|button_text"
@@ -279,6 +287,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_notify, commands = "notify")
 		self.dp.register_message_handler(self.cmd_notifyq, commands = "notifyq")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "exttab")
+		self.dp.register_message_handler(self.cmd_vote, commands = "vote")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
@@ -654,6 +663,45 @@ class MyBot:
 
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
+
+		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_vote(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+		deleted_players = []
+
+		member = await self.bot.get_chat_member(chat_id, user_id)
+
+		if member['status'] in ('administrator', 'creator'):
+			msg_err = check_input(cmd = 'vote', args = args)
+
+			if msg_err == '':
+				msg_id_rfr = int(args[0])
+				user_id_vote = int(args[1])
+				button_id = int(args[2])
+
+				user_name = user_id_vote
+				player = db.get_regular_player_db(chat_id, user_id_vote)
+				if player:
+					user_name = player['user_name']
+				
+				action = db.set_vote_db(chat_id = chat_id,
+									msg_id = msg_id_rfr,
+									user_id = user_id_vote,
+									user_name = user_name,
+									button_id = button_id)
+
+				msg = f"chat_id={chat_id}({message.chat.title}), user {get_username(message.from_user)} {action} for player {user_name}, button {button_id}"
+				logging.info(msg)
+				await self.bot.send_message(user_id, msg)
+
+			else:
+				await self.bot.send_message(user_id, msg_err)
+		else:
+			await self.bot.send_message(user_id, "Менять голос может только администратор")
 
 		await self.bot.delete_message(chat_id, msg_id)
 
