@@ -715,8 +715,13 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 			one_game_player = {'user_id': r_log['user_id'], 'user_name': r_log['user_name'], 'games': games, 'datum': r_log['datum']}
 			one_game_players.append(one_game_player)
 
-		one_game_players = sorted(one_game_players, key = lambda x: (-x['games'], x['datum']))
-		one_game_players = one_game_players[:r['max_players']]
+		if r['last_games'] == 0:
+			one_game_players = sorted(one_game_players, key = lambda x: (x['datum']))
+		else:
+			one_game_players = sorted(one_game_players, key = lambda x: (-x['games'], x['datum']))
+
+		if r['max_players']:
+			one_game_players = one_game_players[:r['max_players']]
 
 		for p in one_game_players:
 			player_stat = next((item for item in players_stats if item.get('user_id') == p['user_id']), None)
