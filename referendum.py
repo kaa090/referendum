@@ -288,6 +288,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_cron, commands = "cron")
 		self.dp.register_message_handler(self.cmd_get_stat, commands = "statall")
 		self.dp.register_message_handler(self.cmd_get_stat_user, commands = "statuser")
+		self.dp.register_message_handler(self.cmd_get_stat_over, commands = "statover")
 		self.dp.register_message_handler(self.cmd_get_regular_players, commands = "get_reg")
 		self.dp.register_message_handler(self.cmd_set_regular_player, commands = "set_reg")
 		self.dp.register_message_handler(self.cmd_del_regular_player, commands = "del_reg")
@@ -632,6 +633,39 @@ class MyBot:
 			await self.bot.send_message(user_id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_get_stat_over(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id
+		args = message.get_args().split("|")
+
+		msg = []
+
+
+		referendums = db.get_referendums_by_user_id_db(chat_id = chat_id, user_id = user_id)
+
+		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
+		msg.append(f"Статистика переполнения кнопки 1:\n")
+
+		num = 1
+		for rfr in referendums:
+			votes = db.get_votes_db(chat_id, rfr['msg_id'])
+
+			players = []
+			for p in votes[config.BUTTON_ID_YES]['queue']:
+				players.append(p['user_name'])
+
+			if players:
+				str_players = ", ".join(players)
+				msg.append(f"{num}. {rfr['msg_id']} - [{str_players}]")
+				num += 1
+
+		if num == 1:
+			msg.append(f"Статистика переполнения отсутствует")
+
+		await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_get_stat(self, message: types.Message):
 		chat_id = message.chat.id
