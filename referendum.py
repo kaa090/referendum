@@ -334,12 +334,12 @@ class MyBot:
 	async def cmd_create(self, message: types.Message, rfr_type):
 		chat_id = message.chat.id
 		msg_id = message.message_id
+		game_cost = 0
+		max_players = 0
+		last_games = 0
 		args = message.get_args().split("|")
 
 		if rfr_type == config.RFR_SINGLE or rfr_type == config.RFR_MULTI:
-			game_cost = 0
-			max_players = 0
-			last_games = 0
 			args = [game_cost] + [max_players] + [last_games] + args
 
 		if rfr_type == config.RFR_GAME:
