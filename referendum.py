@@ -366,6 +366,22 @@ class MyBot:
 			try:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 				await self.bot.delete_message(chat_id, msg_id + 2)
+
+				if rfr_type in (config.RFR_GAME, config.RFR_GAME2) and last_games != 0:
+					stat = db.get_players_stats(chat_id, last_games, msg_id)
+
+					msg_stat = []
+					if stat:
+						msg_stat.append(f"Статистика за {last_games} опросов:\n")
+
+						num = 1
+						for s in stat:
+							msg_stat.append(f"{num}. {s['user_name']} - {s['games']}")
+							num += 1
+					else:
+						msg_stat.append(f"Статистика за {last_games} опросов отсутствует")
+
+					await self.bot.send_message(message.from_user.id, '\n'.join(msg_stat[-4096:]), parse_mode='HTML')
 			except:
 				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, недостаточно прав для управления закреплёнными сообщениями"
 				await self.bot.send_message(message.from_user.id, msg_err)
@@ -638,8 +654,10 @@ class MyBot:
 			if stat:
 				msg.append(f"Статистика за {last_games} опросов:\n")
 
+				num = 1
 				for s in stat:
-					msg.append(f"{s['user_name']} - {s['games']}")
+					msg.append(f"{num}. {s['user_name']} - {s['games']}")
+					num += 1
 			else:
 				msg.append(f"Статистика за {last_games} опросов отсутствует")
 
