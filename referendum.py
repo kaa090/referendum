@@ -359,6 +359,9 @@ class MyBot:
 									rfr_type = rfr_type,
 									args = args)
 
+			referendum = db.get_referendum_db(chat_id, msg_id)
+			last_games = referendum['last_games']
+			
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
