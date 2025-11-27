@@ -439,7 +439,7 @@ class MyBot:
 		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
 		if rfr_closed:
 			msg.append(f"Закрыты опросы:\n")
-			msg.append('\n'.join(rfr_closed))
+			msg.append('\n'.join([str(rfr_id) for rfr_id in rfr_closed]))
 		else:
 			msg.append(f"Нет опросов для закрытия")
 
@@ -675,7 +675,7 @@ class MyBot:
 
 			if player_stat:
 				msg.append(f"Статистика за {last_games} опросов:\n")
-				msg.append(f"{player_stat['user_name']} - {player_stat['games']}")
+				msg.append(f"{player_stat['user_name']}(user_id = {user_id_stat}) - {player_stat['games']}")
 				msg.append('\n'.join(player_stat['datums']))
 			else:
 				msg.append(f"Статистика по user_id = {user_id_stat} за {last_games} опросов отсутствует")
