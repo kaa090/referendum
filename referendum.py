@@ -452,7 +452,7 @@ class MyBot:
 			keyboard = None
 
 			await self.bot.edit_message_text(msg_rfr, chat_id = chat_id, message_id = msg_id_rfr + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
-
+			await self.bot.unpin_chat_message(chat_id, msg_id_rfr + 1)
 			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id_rfr}, vote closed by {get_username(message.from_user)}")
 
 		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
