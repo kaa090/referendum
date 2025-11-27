@@ -92,7 +92,7 @@ def check_input(cmd, args, chat_id = 0, msg_id = 0, user_id = 0):
 
 		for arg in args:
 			if arg.isnumeric() == False:
-				return "user_id, last_games, msg_id* должны быть числами"		
+				return "user_id, last_games, msg_id* должны быть числами"
 
 	elif cmd in ('get', 'get_reg'):
 		if args and args.isnumeric() == False:
@@ -280,6 +280,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_game2, commands = "game2")
 		self.dp.register_message_handler(self.cmd_get, commands = "get")
 		self.dp.register_message_handler(self.cmd_close, commands = "close")
+		self.dp.register_message_handler(self.cmd_close_all, commands = "closeall")
 		self.dp.register_message_handler(self.cmd_open, commands = "open")
 		self.dp.register_message_handler(self.cmd_update, commands = "update")
 		self.dp.register_message_handler(self.cmd_add_btn, commands = "add_btn")
@@ -413,6 +414,37 @@ class MyBot:
 
 	async def cmd_open(self, message: types.Message):
 		await self.cmd_open_close(message = message, status = 1)
+
+	async def cmd_close_all(self, message: types.Message):
+		chat_id = message.chat.id
+		msg_id_del = message.message_id
+		user_id = message.from_user.id      
+		rfr_closed = []
+		msg = []
+
+		referendums = db.get_referendums_by_user_id_db(chat_id, user_id, 1)
+
+		for r in referendums:
+			msg_id_rfr = r['msg_id']
+			rfr_closed.append(msg_id_rfr)
+			db.set_referendum_status_db(chat_id, msg_id_rfr, 0)
+
+			msg_rfr = await self.update_message(message.chat, msg_id_rfr)
+			keyboard = None
+
+			await self.bot.edit_message_text(msg_rfr, chat_id = chat_id, message_id = msg_id_rfr + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+
+			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id_rfr}, vote closed by {get_username(message.from_user)}")
+
+		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
+		if rfr_closed:
+			msg.append(f"Закрыты опросы:\n")
+			msg.append('\n'.join(rfr_closed))
+		else:
+			msg.append(f"Нет опросов для закрытия")
+
+		await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
+		await self.bot.delete_message(chat_id, msg_id_del)
 
 	async def cmd_open_close(self, message: types.Message, status):
 		chat_id = message.chat.id
@@ -602,15 +634,16 @@ class MyBot:
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 
 			msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
-			msg.append(f"Статистика за {last_games} опросов:\n")
 
-			for s in stat:
-				msg.append(f"{s['user_name']} - {s['games']}")
+			if stat:
+				msg.append(f"Статистика за {last_games} опросов:\n")
 
-			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
+				for s in stat:
+					msg.append(f"{s['user_name']} - {s['games']}")
 			else:
-				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует", parse_mode='HTML')
+				msg.append(f"Статистика за {last_games} опросов отсутствует")
+
+			await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
 
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
@@ -636,17 +669,18 @@ class MyBot:
 				msg_id = 0
 
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
-			player_stat = next((item for item in stat if item.get('user_id') == user_id_stat), None)			
-			if player_stat:				
-				msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
+			player_stat = next((item for item in stat if item.get('user_id') == user_id_stat), None)
+			
+			msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
+
+			if player_stat:
 				msg.append(f"Статистика за {last_games} опросов:\n")
 				msg.append(f"{player_stat['user_name']} - {player_stat['games']}")
 				msg.append('\n'.join(player_stat['datums']))
-			
-			if msg:
-				await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
 			else:
-				await self.bot.send_message(message.from_user.id, f"Статистика в \"{message.chat.title}\" отсутствует", parse_mode='HTML')
+				msg.append(f"Статистика по user_id = {user_id_stat} за {last_games} опросов отсутствует")
+
+			await self.bot.send_message(message.from_user.id, '\n'.join(msg[-4096:]), parse_mode='HTML')
 
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
@@ -733,13 +767,13 @@ class MyBot:
 				player = db.get_regular_player_db(chat_id, user_id_vote)
 				if player:
 					user_name = player['user_name']
-				
+
 				action = db.set_vote_db(chat_id = chat_id,
 									msg_id = msg_id_rfr,
 									user_id = user_id_vote,
 									user_name = user_name,
 									button_id = button_id)
-				
+
 				referendum = db.get_referendum_db(chat_id, msg_id_rfr)
 				msg_rfr = await self.update_message(message.chat, msg_id_rfr)
 				if referendum['status']:
