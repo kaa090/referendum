@@ -361,7 +361,7 @@ class MyBot:
 
 			referendum = db.get_referendum_db(chat_id, msg_id)
 			last_games = referendum['last_games']
-			
+
 			msg = await self.update_message(message.chat, msg_id)
 			keyboard = self.get_keyboard(chat_id, msg_id)
 			await message.answer(msg, reply_markup = keyboard, parse_mode = "MarkdownV2")
@@ -380,11 +380,14 @@ class MyBot:
 
 		await self.bot.delete_message(chat_id, msg_id)
 
+		logging.info(f"1.last_games={last_games}")
 		if rfr_type in (config.RFR_GAME, config.RFR_GAME2) and last_games != 0:
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
+			logging.info(f"2.stat={stat}")
 
 			msg_stat = []
 			if stat:
+				logging.info(f"3")
 				msg_stat.append(f"Статистика за {last_games} опросов:\n")
 
 				num = 1
@@ -392,8 +395,10 @@ class MyBot:
 					msg_stat.append(f"{num}. {s['user_name']} - {s['games']}")
 					num += 1
 			else:
+				logging.info(f"4")
 				msg_stat.append(f"Статистика за {last_games} опросов отсутствует")
 
+			logging.info(f"5.message.from_user.id={message.from_user.id}")
 			await self.bot.send_message(message.from_user.id, '\n'.join(msg_stat[-4096:]), parse_mode='HTML')
 
 	async def cmd_get(self, message: types.Message):
