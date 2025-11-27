@@ -426,7 +426,7 @@ class MyBot:
 
 		for r in referendums:
 			msg_id_rfr = r['msg_id']
-			rfr_closed.append(msg_id_rfr)
+			rfr_closed.append(f"{r['msg_id']} - {r['title']}")
 			db.set_referendum_status_db(chat_id, msg_id_rfr, 0)
 
 			msg_rfr = await self.update_message(message.chat, msg_id_rfr)
@@ -439,7 +439,7 @@ class MyBot:
 		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
 		if rfr_closed:
 			msg.append(f"Закрыты опросы:\n")
-			msg.append('\n'.join([str(rfr_id) for rfr_id in rfr_closed]))
+			msg.append('\n'.join(rfr_closed))
 		else:
 			msg.append(f"Нет опросов для закрытия")
 
