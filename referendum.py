@@ -366,22 +366,6 @@ class MyBot:
 			try:
 				await self.bot.pin_chat_message(chat_id, msg_id + 1)
 				await self.bot.delete_message(chat_id, msg_id + 2)
-
-				if rfr_type in (config.RFR_GAME, config.RFR_GAME2) and last_games != 0:
-					stat = db.get_players_stats(chat_id, last_games, msg_id)
-
-					msg_stat = []
-					if stat:
-						msg_stat.append(f"Статистика за {last_games} опросов:\n")
-
-						num = 1
-						for s in stat:
-							msg_stat.append(f"{num}. {s['user_name']} - {s['games']}")
-							num += 1
-					else:
-						msg_stat.append(f"Статистика за {last_games} опросов отсутствует")
-
-					await self.bot.send_message(message.from_user.id, '\n'.join(msg_stat[-4096:]), parse_mode='HTML')
 			except:
 				msg_err = f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, недостаточно прав для управления закреплёнными сообщениями"
 				await self.bot.send_message(message.from_user.id, msg_err)
@@ -392,6 +376,22 @@ class MyBot:
 			await self.bot.send_message(message.from_user.id, msg_err)
 
 		await self.bot.delete_message(chat_id, msg_id)
+
+		if rfr_type in (config.RFR_GAME, config.RFR_GAME2) and last_games != 0:
+			stat = db.get_players_stats(chat_id, last_games, msg_id)
+
+			msg_stat = []
+			if stat:
+				msg_stat.append(f"Статистика за {last_games} опросов:\n")
+
+				num = 1
+				for s in stat:
+					msg_stat.append(f"{num}. {s['user_name']} - {s['games']}")
+					num += 1
+			else:
+				msg_stat.append(f"Статистика за {last_games} опросов отсутствует")
+
+			await self.bot.send_message(message.from_user.id, '\n'.join(msg_stat[-4096:]), parse_mode='HTML')
 
 	async def cmd_get(self, message: types.Message):
 		chat_id = message.chat.id
@@ -688,7 +688,7 @@ class MyBot:
 
 			stat = db.get_players_stats(chat_id, last_games, msg_id)
 			player_stat = next((item for item in stat if item.get('user_id') == user_id_stat), None)
-			
+
 			msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
 
 			if player_stat:
