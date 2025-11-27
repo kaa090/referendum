@@ -646,7 +646,7 @@ class MyBot:
 		referendums = db.get_referendums_by_user_id_db(chat_id = chat_id, user_id = user_id)
 
 		msg.append(f"<b>Группа:</b> \"{message.chat.title}\"\n")
-		msg.append(f"Статистика переполнения кнопки 1:\n")
+		msg.append(f"Статистика переполнения кворума:\n")
 
 		num = 1
 		for rfr in referendums:
@@ -658,7 +658,7 @@ class MyBot:
 
 			if players:
 				str_players = ", ".join(players)
-				msg.append(f"{num}. {rfr['msg_id']} - [{str_players}]")
+				msg.append(f"{num}. {rfr['datum'][:10]} ({rfr['title']}) - [{str_players}]")
 				num += 1
 
 		if num == 1:
