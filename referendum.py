@@ -658,7 +658,7 @@ class MyBot:
 
 			if players:
 				str_players = ", ".join(players)
-				msg.append(f"{num}. {rfr['datum'][:10]} ({rfr['title']}) - [{str_players}]")
+				msg.append(f"{num}. {rfr['datum'][:10]} - [{str_players}]")
 				num += 1
 
 		if num == 1:
