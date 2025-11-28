@@ -4,6 +4,7 @@
 /game2 game_cost***|max_players***|last_games***|заголовок|кнопка_да|кнопка_нет|кнопка_?|кнопка_+|кнопка_-|дополнительная_кнопка
 /get status**
 /close msg_id*
+/closeall
 /open msg_id
 /update msg_id|game_cost***|max_players***|last_games***|заголовок|кнопка_1|...|кнопка_N
 /add_btn msg_id|кнопка
@@ -18,6 +19,7 @@
 /notifyq msg_id*|текст
 /statall last_games|msg_id**
 /statuser user_id|last_games|msg_id**
+/statover
 *   — необязательный параметр, при наличии только одного своего открытого опроса в группе
 **  — необязательный параметр
 *** — обязательный параметр; если не используется, указать 0
