@@ -753,7 +753,7 @@ def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
 	pq_arr = sorted(pq_arr, key = lambda x: (-x['games'], x['datum']))
 
 	players_queue[config.BUTTON_ID_YES]['players'] = pq_arr[:max_players]
-	players_queue[config.BUTTON_ID_YES]['players'] = sorted(players_queue[config.BUTTON_ID_YES]['players'], key = lambda x: , x['datum'])
+	players_queue[config.BUTTON_ID_YES]['players'] = sorted(players_queue[config.BUTTON_ID_YES]['players'], key = lambda x: x['datum'])
 	players_queue[config.BUTTON_ID_YES]['queue'] = pq_arr[max_players:]
 
 	return players_queue
