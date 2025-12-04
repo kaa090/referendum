@@ -416,7 +416,7 @@ class MyBot:
 			msg.append(f"{chat_id}({message.chat.title})")
 
 			for r in referendums:
-				msg.append(f"{{msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, datum={r['datum']}}}")
+				msg.append(f"{{msg_id = {r['msg_id']}, title={r['title']}, status={r['status']}, type={r['rfr_type']}, cost={r['game_cost']}, max={r['max_players']}, last_games={r['last_games']}, datum={r['datum']}}}")
 
 			if msg:
 				msg = '\n'.join(msg)
