@@ -524,11 +524,12 @@ class MyBot:
 		if msg_err == '':
 			msg_id = int(args[0])
 
-			db.update_referendum_db(chat_id = chat_id, args = args)
+			msg_changed = db.update_referendum_db(chat_id = chat_id, args = args)
 
-			msg = await self.update_message(message.chat, msg_id)
-			keyboard = self.get_keyboard(chat_id, msg_id)
-			await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
+			if msg_changed:
+				msg = await self.update_message(message.chat, msg_id)
+				keyboard = self.get_keyboard(chat_id, msg_id)
+				await self.bot.edit_message_text(msg, chat_id = chat_id, message_id = msg_id + 1, reply_markup = keyboard, parse_mode = "MarkdownV2")
 
 			logging.info(f"chat_id={chat_id}({message.chat.title}), msg_id={msg_id}, vote edited by {get_username(message.from_user)}")
 		else:
