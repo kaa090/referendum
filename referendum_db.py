@@ -234,10 +234,16 @@ def get_last_N_referendums_db(chat_id, last_games, datum = 0):
 	return referendums
 
 def update_referendum_db(chat_id, args):
+	display_data_changed = 0
+	
 	msg_id = int(args[0])
+	referendum = db.get_referendum_db(chat_id, msg_id)
 
 	if len(args) >= 2:
 		game_cost = int(args[1])
+
+		if game_cost != referendum['game_cost']:
+			display_data_changed = 1
 
 		sql = '''
 			UPDATE referendums
@@ -251,6 +257,9 @@ def update_referendum_db(chat_id, args):
 
 	if len(args) >= 3:
 		max_players = int(args[2])
+
+		if max_players != referendum['max_players']:
+			display_data_changed = 1
 
 		sql = '''
 			UPDATE referendums
@@ -278,6 +287,9 @@ def update_referendum_db(chat_id, args):
 	if len(args) >= 5:
 		title = args[4]
 
+		if title != referendum['title']:
+			display_data_changed = 1
+
 		sql = '''
 			UPDATE referendums
 				set title = ?
@@ -291,6 +303,7 @@ def update_referendum_db(chat_id, args):
 	if len(args) >= 6:
 		buttons = args[5:]
 		button_id = 1
+		display_data_changed = 1
 
 		for button in buttons:
 			sql = '''
