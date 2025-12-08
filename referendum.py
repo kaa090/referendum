@@ -299,6 +299,7 @@ class MyBot:
 		self.dp.register_message_handler(self.cmd_notifyq, commands = "notifyq")
 		self.dp.register_message_handler(self.cmd_extend_table, commands = "exttab")
 		self.dp.register_message_handler(self.cmd_vote, commands = "vote")
+		self.dp.register_message_handler(self.cmd_getu, commands = "getu")
 
 		self.callback_numbers = CallbackData("prefix", "button")
 		self.dp.register_callback_query_handler(self.process_callback, self.callback_numbers.filter())
@@ -800,6 +801,20 @@ class MyBot:
 		else:
 			await self.bot.send_message(message.from_user.id, msg_err)
 
+		await self.bot.delete_message(chat_id, msg_id)
+
+	async def cmd_getu(self, message: types.Message):
+		user_id = 651786590
+		try:
+			chat = await self.bot.get_chat(chat_id = user_id)
+			if chat.username:
+				msg = f"username = {chat.username}"
+			else:
+				msg = "No username"
+		except Exception as e:
+			msg = f"Error getting chat info for user ID {user_id}: {e}"
+
+		await self.bot.send_message(message.from_user.id, msg)
 		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_vote(self, message: types.Message):
