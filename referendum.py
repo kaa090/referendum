@@ -1046,7 +1046,7 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id)
 		logging.info(f"DB tables changed by user {get_username(message.from_user)}")
 
-	async def send_message_if_lineup_changed(self, chat_id, chat_title, msg_id, referendum, votes_old):
+	async def send_message_if_quorum_changed(self, chat_id, chat_title, msg_id, referendum, votes_old):
 		max_players = 0
 		players_old = 0
 		players_new = 0
@@ -1067,7 +1067,9 @@ class MyBot:
 				players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
 
 				if( players_old == max_players and
-					players_new == max_players ):
+					players_new == max_players 
+						or 
+					players_old == 0):
 
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
@@ -1076,8 +1078,8 @@ class MyBot:
 
 					for old_player in votes_old[config.BUTTON_ID_YES]['players']:
 						if old_player not in votes_new[config.BUTTON_ID_YES]['players']:
-							user_id_msg = old_player['user_id']
-							msg = f"Ваше место в кворуме занял участник с более высокой посещаемостью! Вы - первый в очереди."
+							user_id_msg2 = old_player['user_id']
+							msg2 = f"Ваше место в кворуме занял участник с более высокой посещаемостью! Вы - первый в очереди."
 
 				elif players_old > players_new:
 					friends_needed = max_players - players_new
@@ -1106,6 +1108,10 @@ class MyBot:
 				if user_id_msg:
 					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 					await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+
+				if user_id_msg2:
+					msg2 = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg2}"
+					await self.bot.send_message(user_id_msg2, msg2, parse_mode='HTML')
 
 	async def send_message_if_voted(self, chat_id, chat_title, msg_id, referendum, user_name, button_id):
 		user_id_msg = 575441834
@@ -1165,7 +1171,7 @@ class MyBot:
 			logging.info(log_msg)
 
 			await self.send_message_if_voted(chat_id, chat_title, msg_id, referendum, user_name, button_id)
-			await self.send_message_if_lineup_changed(chat_id, chat_title, msg_id, referendum, votes)
+			await self.send_message_if_quorum_changed(chat_id, chat_title, msg_id, referendum, votes)
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
