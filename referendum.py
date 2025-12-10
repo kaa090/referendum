@@ -1080,8 +1080,8 @@ class MyBot:
 
 					if referendum['last_games']:
 						for old_player in votes_old[config.BUTTON_ID_YES]['players']:
-							if old_player not in votes_new[config.BUTTON_ID_YES]['players']
-								and old_player in votes_new[config.BUTTON_ID_YES]['queue']:
+							if( old_player not in votes_new[config.BUTTON_ID_YES]['players']
+								  and old_player in votes_new[config.BUTTON_ID_YES]['queue']):
 
 								if user_id_msg:
 									member = await self.bot.get_chat_member(chat_id, user_id_msg)
