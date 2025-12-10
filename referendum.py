@@ -1053,6 +1053,7 @@ class MyBot:
 		players_friends = 0
 		user_id_msg = 0
 		user_id_msg2 = 0
+		user_name_new = ""
 
 		max_players = referendum['max_players']
 		players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
@@ -1077,14 +1078,17 @@ class MyBot:
 							user_id_msg = new_player['user_id']
 							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
 
-					for old_player in votes_old[config.BUTTON_ID_YES]['players']:
-						if old_player not in votes_new[config.BUTTON_ID_YES]['players']
-							and old_player in votes_new[config.BUTTON_ID_YES]['queue']:
+					if referendum['last_games']:
+						for old_player in votes_old[config.BUTTON_ID_YES]['players']:
+							if old_player not in votes_new[config.BUTTON_ID_YES]['players']
+								and old_player in votes_new[config.BUTTON_ID_YES]['queue']:
 
-							user_id_msg2 = old_player['user_id']
-							
-							member = await self.bot.get_chat_member(chat_id, user_id_msg)
-							msg2 = f"Ваше место в кворуме занял участник {get_username(member['user'])} с более высокой посещаемостью! Вы - первый в очереди."
+								if user_id_msg:
+									member = await self.bot.get_chat_member(chat_id, user_id_msg)
+									user_name_new = get_username(member['user'])
+
+								user_id_msg2 = old_player['user_id']
+								msg2 = f"Ваше место в кворуме занял участник {user_name_new} с более высокой посещаемостью за {referendum['last_games']} игр. Вы - первый в очереди."
 
 				elif players_old > players_new:
 					friends_needed = max_players - players_new
