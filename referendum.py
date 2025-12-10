@@ -804,7 +804,9 @@ class MyBot:
 		await self.bot.delete_message(chat_id, msg_id)
 
 	async def cmd_getu(self, message: types.Message):
+		chat_id = message.chat.id
 		user_id = 651786590
+
 		try:
 			chat = await self.bot.get_chat(chat_id = user_id)
 			if chat.username:
@@ -1071,6 +1073,11 @@ class MyBot:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
 							user_id_msg = new_player['user_id']
 							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
+
+					for old_player in votes_old[config.BUTTON_ID_YES]['players']:
+						if old_player not in votes_new[config.BUTTON_ID_YES]['players']:
+							user_id_msg = old_player['user_id']
+							msg = f"Ваше место в кворуме занял участник с более высокой посещаемостью! Вы - первый в очереди."
 
 				elif players_old > players_new:
 					friends_needed = max_players - players_new
