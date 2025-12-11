@@ -1051,9 +1051,10 @@ class MyBot:
 		players_old = 0
 		players_new = 0
 		players_friends = 0
-		user_id_msg = 0
-		user_id_msg2 = 0
+		user_id_msg_new = 0
+		user_id_msg_old = 0
 		user_name_new = ""
+		user_name_old = ""
 
 		max_players = referendum['max_players']
 		players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
@@ -1075,19 +1076,24 @@ class MyBot:
 
 					for new_player in votes_new[config.BUTTON_ID_YES]['players']:
 						if new_player not in votes_old[config.BUTTON_ID_YES]['players']:
-							user_id_msg = new_player['user_id']
+							user_id_msg_new = new_player['user_id']
 							msg = f"В кворуме освободилось место, и Вы его заняли! Не забудьте приехать на игру!"
 
 					if referendum['last_games']:
-						for old_player in votes_old[config.BUTTON_ID_YES]['players']:
-							if( old_player not in votes_new[config.BUTTON_ID_YES]['players']
-								  and old_player in votes_new[config.BUTTON_ID_YES]['queue']):
+						for player_old in votes_old[config.BUTTON_ID_YES]['players']:
+							if( player_old not in votes_new[config.BUTTON_ID_YES]['players']
+								  and player_old in votes_new[config.BUTTON_ID_YES]['queue']):
 
-								if user_id_msg:
-									member = await self.bot.get_chat_member(chat_id, user_id_msg)
+								user_id_msg_old = player_old['user_id']
+
+								if user_id_msg_new:
+									member = await self.bot.get_chat_member(chat_id, user_id_msg_new)
 									user_name_new = get_username(member['user'])
+									member = await self.bot.get_chat_member(chat_id, user_id_msg_old)
+									user_name_old = get_username(member['user'])
 
-								user_id_msg2 = old_player['user_id']
+									msg = f"Вы заняли место {user_name_old} в кворуме, как участник с более высокой посещаемостью за {referendum['last_games']} игр. Не забудьте приехать на игру!"
+
 								msg2 = f"Ваше место в кворуме занял участник {user_name_new} с более высокой посещаемостью за {referendum['last_games']} игр. Вы - первый в очереди."
 
 				elif players_old > players_new:
@@ -1096,7 +1102,7 @@ class MyBot:
 
 					for uid in friends:
 						if counter == 1:
-							user_id_msg = uid
+							user_id_msg_new = uid
 							msg = f"В кворуме освободилось место, и участник от Вас его занял! Не забудьте ему напомнить приехать на игру!"
 							break
 						else:
@@ -1108,19 +1114,19 @@ class MyBot:
 
 					for uid in friends:
 						if counter == friend_out:
-							user_id_msg = uid
+							user_id_msg_new = uid
 							msg = f"Место вашего друга в кворуме занял постоянный участник, не забудьте ему об этом напомнить."
 							break
 						else:
 							counter += 1
 
-				if user_id_msg:
+				if user_id_msg_new:
 					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
-					await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+					await self.bot.send_message(user_id_msg_new, msg, parse_mode='HTML')
 
-				if user_id_msg2:
+				if user_id_msg_old:
 					msg2 = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg2}"
-					await self.bot.send_message(user_id_msg2, msg2, parse_mode='HTML')
+					await self.bot.send_message(user_id_msg_old, msg2, parse_mode='HTML')
 
 	async def send_message_if_voted(self, chat_id, chat_title, msg_id, referendum, user_name, button_id):
 		user_id_msg = 575441834
