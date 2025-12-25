@@ -235,9 +235,9 @@ def get_last_N_referendums_db(chat_id, last_games, datum = 0):
 
 def update_referendum_db(chat_id, args):
 	msg_changed = 0
-	
+
 	msg_id = int(args[0])
-	referendum = get_referendum_db(chat_id, msg_id)
+	referendum = db.get_referendum_db(chat_id, msg_id)
 
 	if len(args) >= 2:
 		game_cost = int(args[1])
@@ -753,6 +753,7 @@ def get_players_stats(chat_id, last_games, msg_id = 0):
 	return players_stats
 
 def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
+	referendum = get_referendum_db(chat_id, msg_id)
 	players_queue = _players_queue
 	players_stats = get_players_stats(chat_id, last_games, msg_id)
 	pq_arr = players_queue[config.BUTTON_ID_YES]['players'] + players_queue[config.BUTTON_ID_YES]['queue']
@@ -768,7 +769,8 @@ def add_stat(chat_id, msg_id, max_players, last_games, _players_queue):
 	pq_arr = sorted(pq_arr, key = lambda x: (-x['games'], x['datum']))
 
 	players_queue[config.BUTTON_ID_YES]['players'] = pq_arr[:max_players]
-	players_queue[config.BUTTON_ID_YES]['players'] = sorted(players_queue[config.BUTTON_ID_YES]['players'], key = lambda x: x['datum'])
+	if referendum['user_id'] == 575441834:
+		players_queue[config.BUTTON_ID_YES]['players'] = sorted(players_queue[config.BUTTON_ID_YES]['players'], key = lambda x: x['datum'])
 	players_queue[config.BUTTON_ID_YES]['queue'] = pq_arr[max_players:]
 
 	return players_queue
