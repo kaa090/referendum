@@ -237,7 +237,7 @@ def update_referendum_db(chat_id, args):
 	msg_changed = 0
 
 	msg_id = int(args[0])
-	referendum = db.get_referendum_db(chat_id, msg_id)
+	referendum = get_referendum_db(chat_id, msg_id)
 
 	if len(args) >= 2:
 		game_cost = int(args[1])
