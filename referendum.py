@@ -550,8 +550,9 @@ class MyBot:
 			msg_id = int(args[0])
 			button_text = args[1]
 			referendum = db.get_referendum_db(chat_id, msg_id)
+			buttons = db.get_buttons_db(chat_id, msg_id)
 
-			if referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI):
+			if (referendum['rfr_type'] in (config.RFR_SINGLE, config.RFR_MULTI) or (referendum['rfr_type'] == config.RFR_GAME2 and len(buttons) == 5)):
 				db.add_button(chat_id, msg_id, button_text)
 
 				msg = await self.update_message(message.chat, msg_id)
