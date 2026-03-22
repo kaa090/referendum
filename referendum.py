@@ -269,7 +269,7 @@ class MyBot:
 
 		db.create_tables()
 
-		self.bot = Bot(token = bot_token.TOKEN)
+		self.bot = Bot(token = bot_token.TOKEN, proxy="https://tg.towersflowerss.com:433")
 		self.dp = Dispatcher(self.bot)
 
 		self.dp.register_message_handler(self.cmd_start, commands = "start")
