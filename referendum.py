@@ -1123,8 +1123,8 @@ class MyBot:
 						else:
 							counter += 1
 			else:
-				if players_new + players_friends == max_players and players_old + players_friends == max_players - 1:
-					msg = f"Кворум собран!"
+				if players_new + players_friends == max_players and players_old + players_friends == max_players - 1 and referendum['user_id'] == 575441834:
+					msg = f"Кворум заполнен, {max_players} участников!"
 					user_id_msg_new = referendum['user_id']
 
 			if msg:
