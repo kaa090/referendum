@@ -1122,8 +1122,9 @@ class MyBot:
 							break
 						else:
 							counter += 1
-			else if players_new + players_friends == max_players:
+			elif players_new + players_friends == max_players:
 				msg = f"Кворум собран!"
+				user_id_msg_new = referendum['user_id']
 
 			if msg:
 				msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
