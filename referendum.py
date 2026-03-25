@@ -1122,14 +1122,16 @@ class MyBot:
 							break
 						else:
 							counter += 1
+			else if players_new + players_friends == max_players:
+				msg = f"Кворум собран!"
 
-				if msg:
-					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
-					await self.bot.send_message(user_id_msg_new, msg, parse_mode='HTML')
+			if msg:
+				msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
+				await self.bot.send_message(user_id_msg_new, msg, parse_mode='HTML')
 
-				if msg2:
-					msg2 = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg2}"
-					await self.bot.send_message(user_id_msg_old, msg2, parse_mode='HTML')
+			if msg2:
+				msg2 = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg2}"
+				await self.bot.send_message(user_id_msg_old, msg2, parse_mode='HTML')
 
 	async def send_message_if_voted(self, chat_id, chat_title, msg_id, referendum, user_name, button_id):
 		user_id_msg = 575441834
