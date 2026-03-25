@@ -1061,17 +1061,17 @@ class MyBot:
 		msg2 = ''
 
 		max_players = referendum['max_players']
-		players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
 
 		if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and max_players > 0:
+			votes_new = db.get_votes_db(chat_id, msg_id)
+			players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
+			players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
 			friends = db.get_friends_db(chat_id, msg_id)
 
 			for uid in friends:
 				players_friends += friends[uid]['friends']
 
 			if players_old + players_friends >= max_players:
-				votes_new = db.get_votes_db(chat_id, msg_id)
-				players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
 
 				if( players_old == max_players and
 					players_new == max_players 
@@ -1122,9 +1122,10 @@ class MyBot:
 							break
 						else:
 							counter += 1
-			elif players_new + players_friends == max_players:
-				msg = f"Кворум собран!"
-				user_id_msg_new = referendum['user_id']
+			else:
+				if players_new + players_friends == max_players and players_old + players_friends == max_players - 1:
+					msg = f"Кворум собран!"
+					user_id_msg_new = referendum['user_id']
 
 			if msg:
 				msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
