@@ -1122,11 +1122,7 @@ class MyBot:
 							break
 						else:
 							counter += 1
-			else:
-				if players_new + players_friends == max_players and players_old + players_friends == max_players - 1 and referendum['user_id'] == 575441834:
-					msg = f"Кворум заполнен, {max_players} участников!"
-					user_id_msg_new = referendum['user_id']
-
+			
 			if msg:
 				msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 				await self.bot.send_message(user_id_msg_new, msg, parse_mode='HTML')
@@ -1144,6 +1140,32 @@ class MyBot:
 			msg = f"Участник {user_name} нажал кнопку {buttons[button_id]['button_text']}"
 			msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 			await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+
+	async def send_message_if_quorum_full(self, chat_id, chat_title, msg_id, referendum, votes_old, players_friends_old):
+		user_id_msg = 575441834
+
+		max_players = 0
+		players_old = 0
+		players_new = 0
+		players_friends = 0
+		msg = ''
+		
+		max_players = referendum['max_players']
+
+		if user_id_msg == referendum['user_id']:
+			if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2) and max_players > 0:
+				votes_new = db.get_votes_db(chat_id, msg_id)
+				players_new = len(votes_new[config.BUTTON_ID_YES]['players'])
+				players_old = len(votes_old[config.BUTTON_ID_YES]['players'])
+				friends = db.get_friends_db(chat_id, msg_id)
+
+				for uid in friends:
+					players_friends += friends[uid]['friends']
+
+				if players_new + players_friends == max_players and players_old + players_friends_old == max_players - 1:
+					msg = f"Кворум заполнен на 100\\% \\- {max_players} участников!"
+					msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
+					await self.bot.send_message(chat_id, msg, parse_mode='HTML')
 
 	async def send_message_if_banned(self, chat_title, user_id, user_id_ban, user_name, msg_type):
 		if msg_type == "ban":
@@ -1169,13 +1191,19 @@ class MyBot:
 		member = await self.bot.get_chat_member(chat_id, user_id)
 		action = ''
 		player_type = db.get_player_type(chat_id, user_id)
+		players_friends = 0
 
 		db.set_regular_player_db(chat_id = chat_id, user_id = user_id, user_name = get_username(member['user']), player_type = player_type)
 
 		referendum = db.get_referendum_db(chat_id, msg_id)
 		votes = db.get_votes_db(chat_id, msg_id)
+		friends = db.get_friends_db(chat_id, msg_id)
+
 
 		if player_type != config.PLAYER_TYPE_BANNED:
+			for uid in friends:
+				players_friends += friends[uid]['friends']
+
 			action = db.set_vote_db(chat_id = chat_id,
 									msg_id = msg_id,
 									user_id = user_id,
@@ -1194,6 +1222,7 @@ class MyBot:
 
 			await self.send_message_if_voted(chat_id, chat_title, msg_id, referendum, user_name, button_id)
 			await self.send_message_if_quorum_changed(chat_id, chat_title, msg_id, referendum, votes)
+			await self.send_message_if_quorum_full(chat_id, chat_title, msg_id, referendum, votes, players_friends)
 
 	def get_keyboard(self, chat_id, msg_id):
 		referendum = db.get_referendum_db(chat_id, msg_id)
