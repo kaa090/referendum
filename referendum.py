@@ -1136,7 +1136,7 @@ class MyBot:
 
 		msg = f"Участник {user_name} нажал кнопку {buttons[button_id]['button_text']}"
 		msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
-		await self.bot.send_message(user_id_msg, msg, parse_mode='HTML')
+		await self.bot.send_message(575441834, msg, parse_mode='HTML')
 
 	async def send_message_if_quorum_full(self, chat_id, chat_title, msg_id, referendum, votes_old, players_friends_old):
 		max_players = 0
