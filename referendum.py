@@ -1157,7 +1157,7 @@ class MyBot:
 				players_friends += friends[uid]['friends']
 
 			if players_new + players_friends == max_players and players_old + players_friends_old == max_players - 1:
-				msg = f"Кворум заполнен на 100% - {max_players} участников!"
+				msg = f"Кворум заполнен на 100%: участников - {max_players}!"
 				msg = f"<b>Группа:</b> \"{chat_title}\"\n<b>Тема опроса:</b> \"{referendum['title']}\"\n{msg}"
 				await self.bot.send_message(chat_id, msg, parse_mode='HTML')
 
