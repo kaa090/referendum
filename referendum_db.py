@@ -432,17 +432,22 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 			for btn_id in (config.BUTTON_ID_YES, config.BUTTON_ID_NO, config.BUTTON_ID_Q):
 				for usr in votes[btn_id]['players'] + votes[btn_id]['queue']:
 					if usr['user_id'] == user_id:
-						sql = '''
-							INSERT into rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
-								values(?, ?, ?, ?, ?, ?, ?)
-						'''
-						row = [(chat_id, msg_id, btn_id, user_id, user_name, datum, 0)]
-						exec_sql(sql, row)
-
 						button_old = btn_id
-						action = 'unvoted'
 
-			if button_old != button_id:
+						if button_id == button_old:
+							action = 'tried to unvote'
+						else:
+							action = 'revoted'
+
+							sql = '''
+								INSERT into rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
+									values(?, ?, ?, ?, ?, ?, ?)
+							'''
+							row = [(chat_id, msg_id, btn_id, user_id, user_name, datum, 0)]
+							exec_sql(sql, row)
+
+
+			if button_id != button_old:
 				sql = '''
 					INSERT into rfr_log(chat_id, msg_id, button_id, user_id, user_name, datum, button_status)
 						values(?, ?, ?, ?, ?, ?, ?)
@@ -450,10 +455,9 @@ def set_vote_db(chat_id, msg_id, user_id, user_name, button_id):
 				row = [(chat_id, msg_id, button_id, user_id, user_name, datum, 1)]
 				exec_sql(sql, row)
 
-				if action:
-					action = 'revoted'
-				else:
+				if action == '':
 					action = 'voted'
+
 	elif referendum['rfr_type'] == config.RFR_SINGLE:
 		for btn_id in votes:
 			for usr in votes[btn_id]['players'] + votes[btn_id]['queue']:
