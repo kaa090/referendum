@@ -489,9 +489,6 @@ class MyBot:
             if args:
                 msg_id = int(args)
 
-            db.set_referendum_status_db(chat_id, msg_id, status)
-            msg = await self.update_message(message.chat, msg_id)
-
             if reset_vote == 1:
                 member = await self.bot.get_chat_member(chat_id, user_id)
 
@@ -513,6 +510,9 @@ class MyBot:
                                                 user_id = usr['user_id'],
                                                 user_name = user_name,
                                                 button_id = config.BUTTON_ID_NO)
+
+            db.set_referendum_status_db(chat_id, msg_id, status)
+            msg = await self.update_message(message.chat, msg_id)
 
             if status:
                 keyboard = self.get_keyboard(chat_id, msg_id)
