@@ -496,21 +496,23 @@ class MyBot:
                 member = await self.bot.get_chat_member(chat_id, user_id)
 
                 if member['status'] in ('administrator', 'creator'):
-                    votes = db.get_votes_db(chat_id, rfr['msg_id'])
-                    
-                    for usr in votes[config.BUTTON_ID_YES]['players'] + votes[config.BUTTON_ID_YES]['queue']:
-                        user_name = usr['user_id']
+                    referendum = db.get_referendum_db(chat_id, msg_id)
+                    if referendum['rfr_type'] in (config.RFR_GAME, config.RFR_GAME2):
+                        votes = db.get_votes_db(chat_id, referendum['msg_id'])
                         
-                        player = db.get_regular_player_db(chat_id, usr['user_id'])
-                        
-                        if player:
-                            user_name = player['user_name']
+                        for usr in votes[config.BUTTON_ID_YES]['players'] + votes[config.BUTTON_ID_YES]['queue']:
+                            user_name = usr['user_id']
+                            
+                            player = db.get_regular_player_db(chat_id, usr['user_id'])
+                            
+                            if player:
+                                user_name = player['user_name']
 
-                        action = db.set_vote_db(chat_id = chat_id,
-                                            msg_id = msg_id,
-                                            user_id = usr['user_id'],
-                                            user_name = user_name,
-                                            button_id = config.BUTTON_ID_NO)
+                            action = db.set_vote_db(chat_id = chat_id,
+                                                msg_id = msg_id,
+                                                user_id = usr['user_id'],
+                                                user_name = user_name,
+                                                button_id = config.BUTTON_ID_NO)
 
             if status:
                 keyboard = self.get_keyboard(chat_id, msg_id)
